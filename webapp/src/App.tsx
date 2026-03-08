@@ -66,6 +66,7 @@ export function App(){
   const [showSaves, setShowSaves] = useState(false)
   const [savedGames, setSavedGames] = useState<any[]>([])
   const [postDealRemaining, setPostDealRemaining] = useState<number>(0) // 倒计时剩余毫秒
+  const [countdown, setCountdown] = useState(5) // 结算倒计时
   const timerRef = useRef<number|undefined>(undefined)
   const hasTakenKitty = useRef<boolean>(false) // 防止重复拿底牌
 
@@ -437,8 +438,18 @@ export function App(){
 
   useEffect(() => {
     if (state?.phase === 'done') {
-      const t = setTimeout(nextGame, 5000)
-      return () => clearTimeout(t)
+      setCountdown(5)
+      const interval = setInterval(() => {
+        setCountdown(c => {
+          if (c <= 1) {
+            clearInterval(interval)
+            nextGame()
+            return 0
+          }
+          return c - 1
+        })
+      }, 1000)
+      return () => clearInterval(interval)
     }
   }, [state?.phase])
 
@@ -649,6 +660,31 @@ export function App(){
           <div className="panel small">{t(lang, 'phase')}: {t(lang, state.phase)} | {t(lang, 'mode')}: {t(lang, state.mode)} | {t(lang, 'trump')}: {state.trump ? `${state.trump.suit ? t(lang, state.trump.suit) : t(lang, 'noSuit')}/${t(lang, state.trump.declarer)}` : t(lang, 'noSuit')} | {t(lang, 'currentTurn')}: {state.currentTurn ? t(lang, state.currentTurn) : '-'}</div>
           
           <div className="panel">
+            <b>{t(lang, 'youAre')} {playerSeat === 'south' ? t(lang, 'southSeat') : t(lang, 'northSeat')}</b>
+            <span className="ml-4 text-sm text-gray-600">{t(lang, 'gameId')}: {sessionId}</span>
+            <button 
+              onClick={() => setView('lobby')} 
+              className="ml-4 px-2 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
+            >
+              {t(lang, 'backToLobby')}
+            </button>
+            <button 
+              onClick={() => saveGame()} 
+              className="ml-2 px-2 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              {t(lang, 'saveGame')}
+            </button>
+            <button 
+              onClick={listSaves} 
+              className="ml-2 px-2 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              {t(lang, 'loadSave')}
+            </button>
+          </div>
+
+          <div className="panel small">{t(lang, 'phase')}: {t(lang, state.phase)} | {t(lang, 'mode')}: {t(lang, state.mode)} | {t(lang, 'trump')}: {state.trump ? `${state.trump.suit ? t(lang, state.trump.suit) : t(lang, 'noSuit')}/${t(lang, state.trump.declarer)}` : t(lang, 'noSuit')} | {t(lang, 'currentTurn')}: {state.currentTurn ? t(lang, state.currentTurn) : '-'}</div>
+          
+          <div className="panel">
             <b>{t(lang, 'score')}: {defenderTotal}</b>
             <div className="cards">{defenderPointCards.map((c: Card, idx: number) => <span key={`${c.id}-${idx}`} className={cls(c)}>{txt(c)}</span>)}</div>
           </div>
@@ -702,44 +738,44 @@ export function App(){
           )}
 
           {state.phase === 'done' && state.gameResult && (
-            <div className="panel" style={{ background: '#f0f9ff', border: '2px solid #3b82f6' }}>
-              <h3 style={{ fontSize: '1.2em', fontWeight: 'bold', color: '#1e40af', marginBottom: '12px', textAlign: 'center' }}>
+            <div className="panel" style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%)', border: '2px solid #60a5fa', color: '#fff' }}>
+              <h3 style={{ fontSize: '1.3em', fontWeight: 'bold', color: '#60a5fa', marginBottom: '12px', textAlign: 'center' }}>
                 🎉 {t(lang, 'gameSettleTitle')}
               </h3>
               
               {/* 台面分数 */}
-              <div style={{ marginBottom: '10px', padding: '8px', background: '#fff', borderRadius: '4px' }}>
-                <div style={{ fontWeight: 'bold', marginBottom: '6px' }}>📊 {t(lang, 'tableScore')}</div>
+              <div style={{ marginBottom: '10px', padding: '10px', background: 'rgba(0,0,0,0.3)', borderRadius: '6px' }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '6px', color: '#93c5fd' }}>📊 {t(lang, 'tableScore')}</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>{t(lang, 'dealerTeam')}: <b>{state.gameResult.dealerTeamScore}</b> {t(lang, 'points')}</span>
-                  <span>{t(lang, 'defenderTeam')}: <b>{state.gameResult.defenderTeamScore}</b> {t(lang, 'points')}</span>
+                  <span>{t(lang, 'dealerTeam')}: <b style={{color:'#fbbf24'}}>{state.gameResult.dealerTeamScore}</b> {t(lang, 'points')}</span>
+                  <span>{t(lang, 'defenderTeam')}: <b style={{color:'#fbbf24'}}>{state.gameResult.defenderTeamScore}</b> {t(lang, 'points')}</span>
                 </div>
               </div>
               
               {/* 抠底详情 */}
-              <div style={{ marginBottom: '10px', padding: '8px', background: '#fff', borderRadius: '4px' }}>
-                <div style={{ fontWeight: 'bold', marginBottom: '6px' }}>🎯 {t(lang, 'kittyDetail')}</div>
-                <div>{t(lang, 'kittyBaseScore')}: {state.gameResult.kittyBaseScore} {t(lang, 'points')}</div>
+              <div style={{ marginBottom: '10px', padding: '10px', background: 'rgba(0,0,0,0.3)', borderRadius: '6px' }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '6px', color: '#93c5fd' }}>🎯 {t(lang, 'kittyDetail')}</div>
+                <div>{t(lang, 'kittyBaseScore')}: <b style={{color:'#fbbf24'}}>{state.gameResult.kittyBaseScore}</b> {t(lang, 'points')}</div>
                 <div>{t(lang, 'isKittyTaken')}: {state.gameResult.isKittyTaken ? `✅ ${t(lang, 'yesKittyTaken')}` : `❌ ${t(lang, 'noKittyTaken')}`}</div>
                 {state.gameResult.isKittyTaken && (
                   <>
-                    <div>{t(lang, 'kittyMultiplier')}: ×{state.gameResult.kittyMultiplier}</div>
-                    <div>{t(lang, 'kittyScore')}: {state.gameResult.kittyScore} {t(lang, 'points')}</div>
+                    <div>{t(lang, 'kittyMultiplier')}: <b style={{color:'#f472b6'}}>×{state.gameResult.kittyMultiplier}</b></div>
+                    <div>{t(lang, 'kittyScore')}: <b style={{color:'#fbbf24'}}>{state.gameResult.kittyScore}</b> {t(lang, 'points')}</div>
                   </>
                 )}
               </div>
               
               {/* 最终总分 */}
-              <div style={{ marginBottom: '10px', padding: '10px', background: '#fef3c7', borderRadius: '4px', textAlign: 'center' }}>
-                <div style={{ fontWeight: 'bold' }}>{t(lang, 'finalScore')}: {t(lang, 'defenderTeam')} <b>{state.gameResult.totalScore}</b> {t(lang, 'points')}</div>
+              <div style={{ marginBottom: '10px', padding: '12px', background: 'rgba(251,191,36,0.2)', borderRadius: '6px', textAlign: 'center', border: '1px solid rgba(251,191,36,0.5)' }}>
+                <div style={{ fontWeight: 'bold', color: '#fbbf24' }}>{t(lang, 'finalScore')}: {t(lang, 'defenderTeam')} <b style={{fontSize:'1.2em'}}>{state.gameResult.totalScore}</b> {t(lang, 'points')}</div>
               </div>
               
               {/* 胜负结果 */}
-              <div style={{ marginBottom: '10px', padding: '10px', background: state.gameResult.winner === 'dealer' ? '#dcfce7' : '#fce7f3', borderRadius: '4px', textAlign: 'center' }}>
-                <div style={{ fontSize: '1.1em', fontWeight: 'bold', color: state.gameResult.winner === 'dealer' ? '#166534' : '#9d174d' }}>
+              <div style={{ marginBottom: '10px', padding: '12px', background: state.gameResult.winner === 'dealer' ? 'rgba(34,197,94,0.2)' : 'rgba(244,114,182,0.2)', borderRadius: '6px', textAlign: 'center', border: state.gameResult.winner === 'dealer' ? '1px solid rgba(34,197,94,0.5)' : '1px solid rgba(244,114,182,0.5)' }}>
+                <div style={{ fontSize: '1.2em', fontWeight: 'bold', color: state.gameResult.winner === 'dealer' ? '#4ade80' : '#f472b6' }}>
                   🏆 {state.gameResult.winner === 'dealer' ? t(lang, 'dealerWin') : t(lang, 'defenderWin')}
                 </div>
-                <div style={{ fontSize: '0.9em', marginTop: '4px' }}>
+                <div style={{ fontSize: '0.9em', marginTop: '4px', color: '#cbd5e1' }}>
                   {state.gameResult.winner === 'dealer' 
                     ? (state.gameResult.defenseUpgrade > 0 ? `🛡️ ${t(lang, 'dealerKeep')} (+${state.gameResult.defenseUpgrade})` : `🔄 ${t(lang, 'dealerKeepNoUpgrade')}`)
                     : (state.gameResult.defenseUpgrade > 0 ? `⬆️ ${t(lang, 'defenderUpgrade')} (+${state.gameResult.defenseUpgrade})` : `🔄 ${t(lang, 'changeDealer')}`)
@@ -748,10 +784,10 @@ export function App(){
               </div>
               
               {/* 下一局设置 */}
-              <div style={{ padding: '8px', background: '#e0e7ff', borderRadius: '4px', textAlign: 'center' }}>
-                <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>⏭️ {t(lang, 'nextGameSetting')}</div>
-                <div>{t(lang, 'nextDealer')}: {t(lang, state.gameResult.nextDealer)} | {t(lang, 'nextLevel')}: {state.gameResult.nextLevel} | {t(lang, 'nextMode')}: {t(lang, state.gameResult.nextMode)}</div>
-                <div style={{ fontSize: '0.85em', color: '#666', marginTop: '4px' }}>{t(lang, 'autoNextGame')}</div>
+              <div style={{ padding: '10px', background: 'rgba(96,165,250,0.2)', borderRadius: '6px', textAlign: 'center', border: '1px solid rgba(96,165,250,0.5)' }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '6px', color: '#93c5fd' }}>⏭️ {t(lang, 'nextGameSetting')}</div>
+                <div style={{ color: '#cbd5e1' }}>{t(lang, 'nextDealer')}: <b style={{color:'#fbbf24'}}>{t(lang, state.gameResult.nextDealer)}</b> | {t(lang, 'nextLevel')}: <b style={{color:'#fbbf24'}}>{state.gameResult.nextLevel}</b> | {t(lang, 'nextMode')}: <b style={{color:'#fbbf24'}}>{t(lang, state.gameResult.nextMode)}</b></div>
+                <div style={{ fontSize: '1em', color: '#60a5fa', marginTop: '8px', fontWeight: 'bold' }}>⏱️ {countdown}秒后进入下一局...</div>
               </div>
             </div>
           )}
