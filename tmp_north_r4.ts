@@ -1,0 +1,13 @@
+import { followCardsStrategy, getWinningPlay } from './src/ai/play-strategy';
+import type { Card, GameContext, Seat } from './src/core/types';
+const c=(s:'spade'|'heart'|'club'|'diamond',r:string,id:number):Card=>({id,suit:s,rank:r} as Card);
+const j=(k:'big'|'small',id:number):Card=>({id,joker:k} as Card);
+const ctx:GameContext={level:'5',trumpSuit:'club'};
+const north:Card[]=[j('big',1),j('big',2),j('small',3),c('spade','5',4),c('heart','5',5),c('heart','5',6),c('club','A',7),c('club','Q',8),c('club','J',9),c('club','J',10),c('club','10',11),c('club','10',12),c('club','9',13),c('club','6',14),c('club','6',15),c('club','4',16),c('club','4',17),c('club','2',18),c('spade','A',19),c('spade','K',20),c('spade','K',21),c('spade','9',22),c('spade','9',23),c('spade','8',24),c('spade','3',25),c('heart','A',26),c('heart','A',27),c('heart','9',28),c('heart','8',29),c('heart','8',30),c('heart','4',31),c('heart','3',32),c('heart','2',33),c('diamond','K',34),c('diamond','9',35),c('diamond','6',36),c('diamond','3',37),c('diamond','2',38),c('diamond','2',39)];
+const lead=[c('club','8',100),c('club','8',101),c('club','7',102),c('club','7',103)];
+const current=[{seat:'west' as Seat,cards:lead},{seat:'south' as Seat,cards:[c('diamond','5',110),c('diamond','5',111),j('small',112),j('small',113)]},{seat:'east' as Seat,cards:[c('club','5',120),c('club','5',121),c('club','3',122),c('club','3',123)]}];
+console.log('winner before north:',getWinningPlay(current,ctx).seat);
+const play=followCardsStrategy(north,lead,current,'north',ctx);
+console.log('north play:',play.map(x=>x.joker?x.joker:`${x.suit}${x.rank}`).join(' '));
+const jjtt=[c('club','J',9),c('club','J',10),c('club','10',11),c('club','10',12)];
+console.log('winner if jjtt:',getWinningPlay([...current,{seat:'north' as Seat,cards:jjtt}],ctx).seat);

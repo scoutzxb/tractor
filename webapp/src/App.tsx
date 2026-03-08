@@ -1,3 +1,4 @@
+import { t, Language } from './i18n'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 type Card={id:number;suit?:'spade'|'heart'|'club'|'diamond';rank?:string;joker?:'small'|'big'}
@@ -49,6 +50,9 @@ export function App(){
   const [playerToken, setPlayerToken] = useState('')
   const [joinSessionId, setJoinSessionId] = useState('')
   
+  // Language state
+  const [lang, setLang] = useState<Language>('zh')
+  
   // Game state
   const [state, setState] = useState<State|null>(null)
   const [mode, setMode] = useState('grab')
@@ -72,9 +76,9 @@ export function App(){
     if (!sessionId) return
     const d = await post('/api/save-game', { sessionId, saveName })
     if (d.ok) {
-      add(d.message || '游戏已保存')
+      add(d.message || t(lang, 'gameSaved'))
     } else {
-      add(d.error || '保存失败')
+      add(d.error || t(lang, 'saveFailed'))
     }
   }
 
@@ -92,9 +96,9 @@ export function App(){
       setState(d.state)
       setView('game')
       setShowSaves(false)
-      add(d.message || '游戏已加载')
+      add(d.message || t(lang, 'gameLoaded'))
     } else {
-      add(d.error || '加载失败')
+      add(d.error || t(lang, 'loadFailed'))
     }
   }
 
@@ -105,7 +109,7 @@ export function App(){
       setSavedGames(d.saves || [])
       setShowSaves(true)
     } else {
-      add(d.error || '获取存档列表失败')
+      add(d.error || t(lang, 'loadFailed'))
     }
   }
 
@@ -118,28 +122,28 @@ export function App(){
       setPlayerSeat(d.playerSeat)
       setState(d.state)
       setView('game')
-      add(d.message || '已加载最新存档')
+      add(d.message || t(lang, 'gameLoaded'))
     } else {
-      add(d.error || '快速加载失败')
+      add(d.error || t(lang, 'quickLoadFailed'))
     }
   }
 
   // Delete save
   const deleteSave = async (filename: string) => {
-    if (!confirm('确定要删除这个存档吗？')) return
+    if (!confirm(t(lang, 'confirmDelete'))) return
     const d = await post('/api/delete-save', { filename })
     if (d.ok) {
       setSavedGames(savedGames.filter(s => s.filename !== filename))
-      add(d.message || '存档已删除')
+      add(d.message || t(lang, 'saveDeleted'))
     } else {
-      add(d.error || '删除失败')
+      add(d.error || t(lang, 'deleteFailed'))
     }
   }
 
   // Lobby actions
   const createGame = async () => {
     if (!playerName.trim()) {
-      alert('请输入你的名字')
+      alert(t(lang, 'enterNameAlert'))
       return
     }
     const d = await post('/api/new-game', { mode, level, dealer, playerMode })
@@ -160,19 +164,19 @@ export function App(){
     setState(joinResp.state)
     setView('game')
     if (playerMode === 'single') {
-      setLogs([`单机模式开始！你是南家。`])
+      setLogs([t(lang, 'singleMode') + ' - ' + t(lang, 'southSeat')])
     } else {
-      setLogs([`游戏创建成功！你是南家。等待北家加入... (游戏ID: ${d.sessionId})`])
+      setLogs([t(lang, 'gameFlowStep1') + ' (ID: ' + d.sessionId + ')'])
     }
   }
 
   const joinGame = async () => {
     if (!playerName.trim()) {
-      alert('请输入你的名字')
+      alert(t(lang, 'enterNameAlert'))
       return
     }
     if (!joinSessionId.trim()) {
-      alert('请输入游戏ID')
+      alert(t(lang, 'enterGameIdAlert'))
       return
     }
     
@@ -190,13 +194,13 @@ export function App(){
     setSessionId(joinSessionId.trim())
     setPlayerToken(d.playerToken)
     setPlayerSeat('north')
-    if (d.playerMode) setPlayerMode(d.playerMode) // Set playerMode from server response
+    if (d.playerMode) setPlayerMode(d.playerMode)
     setState(d.state)
     setView('game')
     if (d.playerMode === 'two') {
-      setLogs([`成功加入双人游戏！你是北家。等待南家启动游戏...`])
+      setLogs([t(lang, 'twoMode') + ' - ' + t(lang, 'northSeat')])
     } else {
-      setLogs([`成功加入游戏！你是北家。`])
+      setLogs([t(lang, 'gameFlowStep3')])
     }
   }
 
@@ -211,9 +215,9 @@ export function App(){
         if (!stateResp.error) {
           setState(stateResp)
           if (stateResp.phase === 'postDeal') {
-            add('发牌完成！还有5秒可以补亮...')
+            add(t(lang, 'dealingDoneNotify'))
           } else {
-            add('发牌完成！')
+            add(t(lang, 'dealingDoneShort'))
           }
         }
       } else {
@@ -221,7 +225,7 @@ export function App(){
       }
       return
     }
-    d.declarations?.forEach((x: any) => add(`亮主 ${x.seat}: ${x.cards}`))
+    d.declarations?.forEach((x: any) => add(`${t(lang, 'declareOptions')} ${x.seat}: ${x.cards}`))
     setState(d.state)
     setSelected(new Set())
   }
@@ -239,7 +243,7 @@ export function App(){
     } else {
       setPostDealRemaining(0)
       if (d.phase !== 'postDeal') {
-        add('亮主阶段结束，进入下一阶段')
+        add(t(lang, 'declareOptions') + ' end')
       }
     }
     setState(d.state)
@@ -249,7 +253,7 @@ export function App(){
     const endpoint = playerSeat === 'south' ? '/api/declare-manual' : '/api/declare-north'
     const d = await post(endpoint, { sessionId, key, playerSeat })
     if (d.error) return add(d.error)
-    add(`你亮主成功: ${d.label}`)
+    add(t(lang, 'declareOptions') + ': ' + d.label)
     setState(d.state)
     setSelected(new Set())
   }
@@ -262,7 +266,7 @@ export function App(){
   }
 
   const discard = async () => {
-    if (selected.size !== 6) return add('请先选6张')
+    if (selected.size !== 6) return add(t(lang, 'select6Cards', { count: selected.size }))
     const endpoint = playerSeat === 'south' ? '/api/discard-manual' : '/api/discard-north'
     const d = await post(endpoint, { sessionId, cardIds: [...selected], playerSeat })
     if (d.error) return add(d.error)
@@ -273,7 +277,7 @@ export function App(){
   const runChaodi = async () => {
     const d = await post('/api/run-chaodi', { sessionId, skipSouth: true, playerSeat })
     if (d.error) return add(d.error)
-    ;(d.logs || []).forEach((x: string) => add(`炒底: ${x}`))
+    ;(d.logs || []).forEach((x: string) => add(`Chaodi: ${x}`))
     setState(d.state)
     setSelected(new Set())
   }
@@ -282,7 +286,7 @@ export function App(){
     const endpoint = playerSeat === 'south' ? '/api/chao-di-manual' : '/api/chao-di-north'
     const d = await post(endpoint, { sessionId, key, playerSeat })
     if (d.error) return add(d.error)
-    add(`你炒底成功: ${d.label}`)
+    add(`Chaodi: ${d.label}`)
     setState(d.state)
     setSelected(new Set())
   }
@@ -290,7 +294,7 @@ export function App(){
   const runPlay = async () => {
     const d = await post('/api/run-play', { sessionId })
     if (d.error) return add(d.error)
-    ;(d.logs || []).forEach((x: string) => add(`出牌: ${x}`))
+    ;(d.logs || []).forEach((x: string) => add(`Play: ${x}`))
     setState(d.state)
     setSelected(new Set())
   }
@@ -299,16 +303,16 @@ export function App(){
     if (!state) return
     const inHand = new Set((state.myHand || []).map((c: Card) => String(c.id)))
     const safe = [...selected].filter(id => inHand.has(id))
-    if (safe.length === 0) return add('请先选择你手里的牌')
+    if (safe.length === 0) return add(t(lang, 'enterGameIdAlert'))
     if (state.phase === 'play' && state.currentTurn === playerSeat && leadCount > 0 && safe.length !== requiredCount) {
-      return add(`本轮需要出 ${requiredCount} 张牌，你当前选了 ${safe.length} 张`)
+      return add(t(lang, 'cardsRequired', { required: requiredCount, count: safe.length }))
     }
     const endpoint = playerSeat === 'south' ? '/api/play-human' : '/api/play-north'
     const d = await post(endpoint, { sessionId, cardIds: safe })
     if (d.error) return add(d.error)
     setSelected(new Set())
-    ;(d.events || []).forEach((x: string) => add(`系统: ${x}`))
-    if (d.winner) add(`本轮胜者: ${d.winner}，得分: ${d.points}`)
+    ;(d.events || []).forEach((x: string) => add(`System: ${x}`))
+    if (d.winner) add(`${t(lang, 'winner')}: ${d.winner}, ${t(lang, 'score')}: ${d.points}`)
     setState(d.state)
   }
 
@@ -325,7 +329,7 @@ export function App(){
     setMode(d.mode ?? nextMode)
     setLevel(d.level ?? nextLevel)
     setDealer(d.dealer ?? nextDealer)
-    setLogs([`新局开始: ${d.mode ?? nextMode}模式, ${d.level ?? nextLevel}级, 庄家${d.dealer ?? nextDealer}`])
+    setLogs([`New game: ${d.mode ?? nextMode}, ${t(lang, 'level')}: ${d.level ?? nextLevel}, ${t(lang, 'dealer')}: ${d.dealer ?? nextDealer}`])
   }
 
   useEffect(() => {
@@ -400,7 +404,7 @@ export function App(){
     if (!sessionId || !state) return
     if (state.phase === 'play') {
       post('/api/advance-play', { sessionId, playerSeat }).then((d: any) => {
-        if (d?.events) d.events.forEach((x: string) => add(`系统: ${x}`))
+        if (d?.events) d.events.forEach((x: string) => add(`System: ${x}`))
         if (d?.state) setState(d.state)
       })
     }
@@ -422,7 +426,7 @@ export function App(){
         // Also run advance-play to trigger AI moves if needed
         const advResp = await post('/api/advance-play', { sessionId, playerSeat })
         if (advResp?.events) {
-          advResp.events.forEach((x: string) => add(`系统: ${x}`))
+          advResp.events.forEach((x: string) => add(`System: ${x}`))
         }
         if (advResp?.state) setState(advResp.state)
       }
@@ -442,7 +446,7 @@ export function App(){
     if (!sessionId || !state || state.phase !== 'play' || !state.waitingNextRound) return
     const t = setTimeout(() => {
       post('/api/next-round', { sessionId, playerSeat }).then((d: any) => {
-        if (d?.events) d.events.forEach((x: string) => add(`系统: ${x}`))
+        if (d?.events) d.events.forEach((x: string) => add(`System: ${x}`))
         if (d?.state) setState(d.state)
       })
     }, 1000)
@@ -482,66 +486,74 @@ export function App(){
   if (view === 'lobby') {
     return (
       <div className="p-8 max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">拖拉机 (Tractor) - 远程多人游戏</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">{t(lang, 'title')}</h1>
+          <button 
+            onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm"
+          >
+            {lang === 'zh' ? 'English' : '中文'}
+          </button>
+        </div>
         
         <div className="panel mb-4">
-          <label className="block mb-2 font-bold">你的名字:</label>
+          <label className="block mb-2 font-bold">{t(lang, 'yourName')}</label>
           <input
             type="text"
             value={playerName}
             onChange={e => setPlayerName(e.target.value)}
             className="w-full p-2 border rounded"
-            placeholder="输入你的名字"
+            placeholder={t(lang, 'namePlaceholder')}
           />
         </div>
 
         <div className="panel mb-4">
-          <h2 className="text-xl font-bold mb-2">创建新游戏</h2>
+          <h2 className="text-xl font-bold mb-2">{t(lang, 'createGame')}</h2>
           <div className="flex gap-2 mb-2">
             <select value={playerMode} onChange={e => setPlayerMode(e.target.value as 'single' | 'two')} className="p-2 border rounded">
-              <option value="single">单机模式</option>
-              <option value="two">双人模式</option>
+              <option value="single">{t(lang, 'singleMode')}</option>
+              <option value="two">{t(lang, 'twoMode')}</option>
             </select>
             <select value={mode} onChange={e => setMode(e.target.value)} className="p-2 border rounded">
-              <option value="grab">抢庄</option>
-              <option value="normal">普通</option>
+              <option value="grab">{t(lang, 'grabMode')}</option>
+              <option value="normal">{t(lang, 'normalMode')}</option>
             </select>
             <select value={level} onChange={e => setLevel(e.target.value)} className="p-2 border rounded">
               {['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'].map(x => <option key={x}>{x}</option>)}
             </select>
             <select value={dealer} onChange={e => setDealer(e.target.value)} className="p-2 border rounded">
-              {['south', 'east', 'north', 'west'].map(x => <option key={x}>{x}</option>)}
+              {['south', 'east', 'north', 'west'].map(x => <option key={x}>{t(lang, x)} ({x})</option>)}
             </select>
           </div>
           <button onClick={createGame} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-            创建游戏（你将成为南家）
+            {t(lang, 'createGameButton')}
           </button>
           {playerMode === 'two' && (
-            <p className="text-sm text-gray-600 mt-2">双人模式：创建游戏后需等待北家加入</p>
+            <p className="text-sm text-gray-600 mt-2">{t(lang, 'twoModeHint')}</p>
           )}
         </div>
 
         <div className="panel mb-4">
-          <h2 className="text-xl font-bold mb-2">加入现有游戏</h2>
+          <h2 className="text-xl font-bold mb-2">{t(lang, 'joinGame')}</h2>
           <input
             type="text"
             value={joinSessionId}
             onChange={e => setJoinSessionId(e.target.value)}
             className="w-full p-2 border rounded mb-2"
-            placeholder="输入游戏ID"
+            placeholder={t(lang, 'gameIdPlaceholder')}
           />
           <button onClick={joinGame} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-            加入游戏（你将成为北家）
+            {t(lang, 'joinGameButton')}
           </button>
         </div>
 
         <div className="panel small text-gray-600">
-          <p className="mb-2"><strong>游戏流程：</strong></p>
+          <p className="mb-2"><strong>{t(lang, 'gameFlow')}</strong></p>
           <ol className="list-decimal list-inside">
-            <li>玩家A创建游戏，自动成为南家</li>
-            <li>玩家A将游戏ID分享给玩家B</li>
-            <li>玩家B输入游戏ID加入，成为北家</li>
-            <li>两位玩家各自只能看到自己的手牌</li>
+            <li>{t(lang, 'gameFlowStep1')}</li>
+            <li>{t(lang, 'gameFlowStep2')}</li>
+            <li>{t(lang, 'gameFlowStep3')}</li>
+            <li>{t(lang, 'gameFlowStep4')}</li>
           </ol>
         </div>
       </div>
@@ -552,25 +564,25 @@ export function App(){
   return (
     <div>
       <div className="panel mb-2">
-        <strong>你是: {playerSeat === 'south' ? '南家' : '北家'}</strong>
-        <span className="ml-4 text-sm text-gray-600">游戏ID: {sessionId}</span>
+        <strong>{t(lang, 'youAre')} {playerSeat === 'south' ? t(lang, 'southSeat') : t(lang, 'northSeat')}</strong>
+        <span className="ml-4 text-sm text-gray-600">{t(lang, 'gameId')}: {sessionId}</span>
         <button 
           onClick={() => setView('lobby')} 
           className="ml-4 px-2 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
         >
-          返回大厅
+          {t(lang, 'backToLobby')}
         </button>
         <button 
           onClick={() => saveGame()} 
           className="ml-2 px-2 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
         >
-          保存游戏
+          {t(lang, 'saveGame')}
         </button>
         <button 
           onClick={listSaves} 
           className="ml-2 px-2 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
         >
-          读取存档
+          {t(lang, 'loadSave')}
         </button>
       </div>
 
@@ -578,11 +590,11 @@ export function App(){
       {showSaves && (
         <div className="panel">
           <div className="flex justify-between items-center mb-2">
-            <b>存档列表</b>
-            <button onClick={() => setShowSaves(false)} className="text-sm">关闭</button>
+            <b>{t(lang, 'savesTitle')}</b>
+            <button onClick={() => setShowSaves(false)} className="text-sm">{t(lang, 'close')}</button>
           </div>
           {savedGames.length === 0 ? (
-            <p className="text-gray-600">暂无存档</p>
+            <p className="text-gray-600">{t(lang, 'noSaves')}</p>
           ) : (
             <div className="space-y-2">
               {savedGames.map((save: any) => (
@@ -590,8 +602,8 @@ export function App(){
                   <div>
                     <div className="font-medium">{save.filename}</div>
                     <div className="text-sm text-gray-600">
-                      阶段: {save.phase} | 级别: {save.level} | 庄家: {save.dealer}
-                      {save.savedAt && <span className="ml-2">保存时间: {new Date(save.savedAt).toLocaleString()}</span>}
+                      {t(lang, 'phase')}: {t(lang, save.phase)} | {t(lang, 'level')}: {save.level} | {t(lang, 'dealer')}: {t(lang, save.dealer)}
+                      {save.savedAt && <span className="ml-2">{t(lang, 'savedAt')}: {new Date(save.savedAt).toLocaleString()}</span>}
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -599,13 +611,13 @@ export function App(){
                       onClick={() => loadGame(save.filename)}
                       className="px-2 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
                     >
-                      读取
+                      {t(lang, 'load')}
                     </button>
                     <button 
                       onClick={() => deleteSave(save.filename)}
                       className="px-2 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
                     >
-                      删除
+                      {t(lang, 'delete')}
                     </button>
                   </div>
                 </div>
@@ -617,103 +629,103 @@ export function App(){
 
       <div className="panel">
         <select value={mode} onChange={e => setMode(e.target.value)} disabled>
-          <option value="grab">grab</option>
-          <option value="normal">normal</option>
+          <option value="grab">{t(lang, 'grabMode')}</option>
+          <option value="normal">{t(lang, 'normalMode')}</option>
         </select>
         <select value={level} onChange={e => setLevel(e.target.value)} disabled>
           {['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'].map(x => <option key={x}>{x}</option>)}
         </select>
         <select value={dealer} onChange={e => setDealer(e.target.value)} disabled>
-          {['south', 'east', 'north', 'west'].map(x => <option key={x}>{x}</option>)}
+          {['south', 'east', 'north', 'west'].map(x => <option key={x}>{t(lang, x)}</option>)}
         </select>
-        <button onClick={() => setShowReview(v => !v)} disabled={!state || !state.lastRoundReview}>复盘上一轮</button>
+        <button onClick={() => setShowReview(v => !v)} disabled={!state || !state.lastRoundReview}>{t(lang, 'reviewLastRound')}</button>
         <button onClick={() => setShowKitty(v => !v)} disabled={!state || state.kittyHolder !== playerSeat}>
-          {showKitty ? '隐藏底牌' : '查看底牌'}
+          {showKitty ? t(lang, 'hideKitty') : t(lang, 'viewKitty')}
         </button>
       </div>
 
       {state && (
         <>
-          <div className="panel small">阶段: {state.phase} | 模式: {state.mode} | 主: {state.trump ? `${state.trump.suitName}/${state.trump.declarer}` : '未亮主'} | 当前行动: {state.currentTurn || '-'}</div>
+          <div className="panel small">{t(lang, 'phase')}: {t(lang, state.phase)} | {t(lang, 'mode')}: {t(lang, state.mode)} | {t(lang, 'trump')}: {state.trump ? `${t(lang, state.trump.suit)}/${t(lang, state.trump.declarer)}` : t(lang, 'noSuit')} | {t(lang, 'currentTurn')}: {state.currentTurn ? t(lang, state.currentTurn) : '-'}</div>
           
           <div className="panel">
-            <b>得分: {defenderTotal}</b>
+            <b>{t(lang, 'score')}: {defenderTotal}</b>
             <div className="cards">{defenderPointCards.map((c: Card, idx: number) => <span key={`${c.id}-${idx}`} className={cls(c)}>{txt(c)}</span>)}</div>
           </div>
 
           {showKitty && state.kittyHolder === playerSeat && (
             <div className="panel">
-              <b>底牌</b>
+              <b>{t(lang, 'kitty')}</b>
               <div className="cards">{(state.kittyCards || []).map((c: Card) => <span key={c.id} className={cls(c)}>{txt(c)}</span>)}</div>
             </div>
           )}
 
           {state.connectedPlayers && (
             <div className="panel small">
-              已连接玩家: {state.connectedPlayers.join(', ')}
+              {t(lang, 'connectedPlayers')}: {state.connectedPlayers.join(', ')}
               {state.waitingFor && state.waitingFor.length > 0 && (
-                <span className="text-orange-600 ml-2">等待: {state.waitingFor.join(', ')}</span>
+                <span className="text-orange-600 ml-2">{t(lang, 'waiting')}: {state.waitingFor.join(', ')}</span>
               )}
             </div>
           )}
 
           {state.phase === 'play' && state.currentTurn === playerSeat && (
             <div className="panel small">
-              {leadCount === 0 ? `你是首家：可出同门任意张（当前已选 ${selected.size}）` : `你当前需出牌张数：${requiredCount}（已选 ${selected.size}）`}
+              {leadCount === 0 ? t(lang, 'youAreLeader', { count: selected.size }) : t(lang, 'cardsRequired', { required: requiredCount, count: selected.size })}
             </div>
           )}
 
           <div className="panel">
-            <b>亮主选项</b>
+            <b>{t(lang, 'declareOptions')}</b>
             <div className="matrix">{(state.declareOptions || []).map((o: any) => <button key={o.key} onClick={() => declare(o.key)}>{o.label}</button>)}</div>
           </div>
 
           {state.phase === 'kitty' && state.kittyHolder === playerSeat && state.awaitingDiscard && (
             <div className="panel">
-              <b>请选择6张牌扣底（当前选了{selected.size}张）</b>
-              <button onClick={discard}>确认扣底</button>
+              <b>{t(lang, 'select6Cards', { count: selected.size })}</b>
+              <button onClick={discard}>{t(lang, 'confirmDiscard')}</button>
             </div>
           )}
 
           {state.phase === 'chaodi' && (
             <div className="panel">
               <div className="matrix">{(state.chaoDiOptions || []).map((o: any) => <button key={o.key} onClick={() => doChaodi(o.key)}>{o.label}</button>)}</div>
-              <button onClick={runChaodi}>让AI继续炒底链</button>
+              <button onClick={runChaodi}>{t(lang, 'letAIContinue')}</button>
             </div>
           )}
 
           {state.phase === 'postDeal' && (
             <div className="panel">
-              <b>发牌完成！还有 {Math.ceil(postDealRemaining / 1000)} 秒可以补亮</b>
-              <div className="small text-gray-600">期间可以继续亮主，时间到后自动进入下一阶段</div>
+              <b>{t(lang, 'dealingDone', { seconds: Math.ceil(postDealRemaining / 1000) })}</b>
+              <div className="small text-gray-600">{t(lang, 'canDeclareHint')}</div>
             </div>
           )}
 
           {state.phase === 'done' && (
             <div className="panel">
-              本局已完成。自动进入下一局...
+              {t(lang, 'gameDone')}
             </div>
           )}
 
           <div className="panel">
-            <b>本轮出牌（四家分开）</b>
-            <div className="small">east</div>
+            <b>{t(lang, 'currentRound')}</b>
+            <div className="small">{t(lang, 'east')}</div>
             <div className="cards">{(table.east || []).map((c: Card) => <span key={c.id} className={cls(c)}>{txt(c)}</span>)}</div>
-            <div className="small">north</div>
+            <div className="small">{t(lang, 'north')}</div>
             <div className="cards">{(table.north || []).map((c: Card) => <span key={c.id} className={cls(c)}>{txt(c)}</span>)}</div>
-            <div className="small">west</div>
+            <div className="small">{t(lang, 'west')}</div>
             <div className="cards">{(table.west || []).map((c: Card) => <span key={c.id} className={cls(c)}>{txt(c)}</span>)}</div>
-            <div className="small">south</div>
+            <div className="small">{t(lang, 'south')}</div>
             <div className="cards">{(table.south || []).map((c: Card) => <span key={c.id} className={cls(c)}>{txt(c)}</span>)}</div>
           </div>
 
           {showReview && state.lastRoundReview && (
             <div className="panel">
-              <b>上一轮复盘（第{state.lastRoundReview.round}轮）</b>
-              <div className="small">胜者: {state.lastRoundReview.winner} | 得分: {state.lastRoundReview.points}</div>
+              <b>{t(lang, 'lastRoundReview', { round: state.lastRoundReview.round })}</b>
+              <div className="small">{t(lang, 'winner')}: {state.lastRoundReview.winner} | {t(lang, 'score')}: {state.lastRoundReview.points}</div>
               {state.lastRoundReview.plays?.map((p: any) => (
                 <div key={p.seat}>
-                  <span className="small">{p.seat}</span>
+                  <span className="small">{t(lang, p.seat)}</span>
                   <span className="cards">{(p.cards || []).map((c: Card) => <span key={c.id} className={cls(c)}>{txt(c)}</span>)}</span>
                 </div>
               ))}
@@ -721,7 +733,7 @@ export function App(){
           )}
 
           <div className="panel">
-            <b>你的手牌 ({playerSeat === 'south' ? '南家' : '北家'})</b>
+            <b>{t(lang, 'yourHand', { seat: playerSeat === 'south' ? t(lang, 'southSeat') : t(lang, 'northSeat') })}</b>
             <div className="cards">
               {sorted.map(c => {
                 const id = String(c.id)
@@ -748,7 +760,7 @@ export function App(){
                 disabled={selected.size === 0 || (leadCount > 0 && selected.size !== requiredCount)}
                 style={{ marginTop: '8px' }}
               >
-                出选中牌{selected.size ? ` (${selected.size}张)` : ''}
+                {t(lang, 'playSelected')}
               </button>
             )}
           </div>
@@ -759,3 +771,4 @@ export function App(){
     </div>
   )
 }
+import { t, Language } from './i18n'

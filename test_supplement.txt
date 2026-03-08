@@ -1,0 +1,83 @@
+
+🎴 补亮机制测试
+
+  ✅ north 亮主成功 (1张club级牌)
+第 5 轮: north 抓到 diamond9
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 6 轮: north 抓到 spade8
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 7 轮: north 抓到 clubA
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 8 轮: north 抓到 club8
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 9 轮: north 抓到 diamond4
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 10 轮: north 抓到 club10
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 11 轮: north 抓到 spade10
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 12 轮: north 抓到 heart8
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 13 轮: north 抓到 clubA
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 14 轮: north 抓到 heart2
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 15 轮: north 抓到 club9
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 16 轮: north 抓到 spade3
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 17 轮: north 抓到 heart7
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 18 轮: north 抓到 spade9
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 19 轮: north 抓到 spadeJ
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 20 轮: north 抓到 club9
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 21 轮: north 抓到 undefinedundefined
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 22 轮: north 抓到 diamond5
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 23 轮: north 抓到 diamond3
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 24 轮: north 抓到 heartK
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 25 轮: north 抓到 spade4
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 26 轮: north 抓到 heart5
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 27 轮: north 抓到 spade4
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 28 轮: north 抓到 spade3
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 29 轮: north 抓到 diamondQ
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 30 轮: north 抓到 spade5
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 31 轮: north 抓到 diamond2
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 32 轮: north 抓到 diamondA
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 33 轮: north 抓到 club4
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 34 轮: north 抓到 spadeQ
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 35 轮: north 抓到 clubJ
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 36 轮: north 抓到 heartJ
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 37 轮: north 抓到 club8
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 38 轮: north 抓到 diamond10
+  north 检查补亮: 当前1张，手上有1张club级牌
+第 39 轮: north 抓到 spadeQ
+  north 检查补亮: 当前1张，手上有1张club级牌
+
+📦 最终结果
+
+亮主者: north
+主花色: club
+亮主牌数: 1张
+
+✅ 测试完成
+

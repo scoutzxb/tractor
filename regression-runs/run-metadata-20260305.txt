@@ -1,0 +1,3 @@
+cwd=/home/workspace/tractor
+seed=123
+date_utc=2026-03-05T02:46:39Z

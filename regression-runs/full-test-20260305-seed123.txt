@@ -1,0 +1,542 @@
+bun test v1.2.21 (7c45ed97)
+
+tests/parser.test.ts:
+✓ M2 测试完成
+(pass) M2: 牌型识别与解析 > A. 基础牌型 > A1: 单张K [1.17ms]
+(pass) M2: 牌型识别与解析 > A. 基础牌型 > A2: KK对子 [0.30ms]
+(pass) M2: 牌型识别与解析 > A. 基础牌型 > A3: KKK三张 [0.11ms]
+(pass) M2: 牌型识别与解析 > A. 基础牌型 > A4: 打K红桃主时K是主牌 [0.56ms]
+(pass) M2: 牌型识别与解析 > A. 基础牌型 > A5: 空输入 [0.09ms]
+(pass) M2: 牌型识别与解析 > B. 拖拉机基础 > B1: ♠QQKK [0.74ms]
+(pass) M2: 牌型识别与解析 > B. 拖拉机基础 > B2: ♠JJQQKK [0.20ms]
+(pass) M2: 牌型识别与解析 > B. 拖拉机基础 > B3: ♠JJQQKKAA [0.59ms]
+(pass) M2: 牌型识别与解析 > B. 拖拉机基础 > B4: ♠KKAA [0.26ms]
+(pass) M2: 牌型识别与解析 > B. 拖拉机基础 > B5: ♠AA22（打3♥主） [0.25ms]
+(pass) M2: 牌型识别与解析 > C. 级牌移除后相邻 > C1: ♠3355（打4♥主） [0.54ms]
+(pass) M2: 牌型识别与解析 > C. 级牌移除后相邻 > C2: ♠4466（打5♥主） [0.18ms]
+(pass) M2: 牌型识别与解析 > C. 级牌移除后相邻 > C3: ♠QQAA（打K♥主） [0.15ms]
+(pass) M2: 牌型识别与解析 > D. 主牌拖拉机 > D1: 大王×2 + 小王×2 [0.32ms]
+(pass) M2: 牌型识别与解析 > D. 主牌拖拉机 > D2: 小王×2 + ♥22 [0.12ms]
+(pass) M2: 牌型识别与解析 > D. 主牌拖拉机 > D3: ♥22 + ♠22 [0.10ms]
+(pass) M2: 牌型识别与解析 > D. 主牌拖拉机 > D4: ♠22 + ♥AA [0.15ms]
+(pass) M2: 牌型识别与解析 > E. 超级拖拉机 > E1: ♠333444 [0.19ms]
+(pass) M2: 牌型识别与解析 > E. 超级拖拉机 > E2: ♠333444555 [0.16ms]
+(pass) M2: 牌型识别与解析 > E. 超级拖拉机 > E3: 大王×3 + 小王×3 [0.11ms]
+(pass) M2: 牌型识别与解析 > F. 解析优先级冲突 > F1: ♠QQKKK（三张优先） [0.28ms]
+(pass) M2: 牌型识别与解析 > F. 解析优先级冲突 > F2: ♠QQQKK（三张优先） [1.64ms]
+(pass) M2: 牌型识别与解析 > F. 解析优先级冲突 > F3: ♠QQQKKK（超级拖拉机） [0.19ms]
+(pass) M2: 牌型识别与解析 > F. 解析优先级冲突 > F4: ♠QQQKKKAA [0.17ms]
+(pass) M2: 牌型识别与解析 > G. 甩牌混合组合 > G1: ♠KK + ♠A [0.15ms]
+(pass) M2: 牌型识别与解析 > G. 甩牌混合组合 > G2: ♠KKK + ♠QQ + ♠J [0.18ms]
+(pass) M2: 牌型识别与解析 > G. 甩牌混合组合 > G3: ♠JJQQ + ♠A [0.20ms]
+(pass) M2: 牌型识别与解析 > G. 甩牌混合组合 > G4: ♠333444 + ♠KK + ♠A [0.16ms]
+(pass) M2: 牌型识别与解析 > H. 边界与特殊情况 > H1: 同一张牌3张 [0.10ms]
+(pass) M2: 牌型识别与解析 > H. 边界与特殊情况 > H2: ♠AAKKQQJJ1010 [0.20ms]
+(pass) M2: 牌型识别与解析 > H. 边界与特殊情况 > H3: 无主局♠22+♥22 [0.15ms]
+(pass) M2: 牌型识别与解析 > H. 边界与特殊情况 > H4: 打A♥主♠QQKK [0.16ms]
+
+tests/game-loop.test.ts:
+✓ M8 测试完成
+(pass) M8: 游戏主循环 > 初始化游戏引擎 [0.20ms]
+(pass) M8: 游戏主循环 > 注册AI玩家 [0.14ms]
+(pass) M8: 游戏主循环 > 运行一局完整游戏 [19.49ms]
+(pass) M8: 游戏主循环 > 游戏日志记录 [8.50ms]
+(pass) M8: 游戏主循环 > 多局游戏稳定性 [65.80ms]
+(pass) M8: 游戏主循环 > 不同初始级别 [16.96ms]
+(pass) M8: 游戏主循环 > 不同初始庄家 [9.95ms]
+
+tests/scoring.test.ts:
+✓ M6 测试完成
+(pass) M6: 计分与升级 > A. 得分牌识别 > A1: 5=5分，10=10分，K=10分 [0.08ms]
+(pass) M6: 计分与升级 > A. 得分牌识别 > A2: 非得分牌=0分 [0.04ms]
+(pass) M6: 计分与升级 > A. 得分牌识别 > A3: 3副牌全部得分牌 = 总分300 [0.10ms]
+(pass) M6: 计分与升级 > B. 升级判定 > B1: 攻方0分 → 守方升3级 [0.07ms]
+(pass) M6: 计分与升级 > B. 升级判定 > B2: 攻方115分 → 守方升1级 [0.04ms]
+(pass) M6: 计分与升级 > B. 升级判定 > B3: 攻方120分 → 换庄不升级 [0.05ms]
+(pass) M6: 计分与升级 > B. 升级判定 > B4: 攻方300分 → 攻方升3级 [0.05ms]
+(pass) M6: 计分与升级 > C. 抠底倍数 > C1: 单张抠底 ×2 [0.08ms]
+(pass) M6: 计分与升级 > C. 抠底倍数 > C2: 对子抠底 ×4 [0.06ms]
+(pass) M6: 计分与升级 > C. 抠底倍数 > C3: 拖拉机3连抠底 ×16 [0.08ms]
+(pass) M6: 计分与升级 > C. 抠底倍数 > C4: 三张抠底 ×6 [0.05ms]
+(pass) M6: 计分与升级 > D. 必打级别 > D1: 打3升2级 → 到5停（必打） [0.03ms]
+(pass) M6: 计分与升级 > D. 必打级别 > D2: 打3升3级 → 到5停（必打） [0.03ms]
+(pass) M6: 计分与升级 > E. J抠底降级 > E1: 打J闲家J抠底 → 庄家降回2 [0.85ms]
+(pass) M6: 计分与升级 > E. J抠底降级 > E2: 打J闲家大王大王+JJ抠底 → 最大组件大王，J不在 → 不降级 [0.09ms]
+(pass) M6: 计分与升级 > F. 交庄判定 > F1: 守方胜 → 交庄给对家 [0.05ms]
+(pass) M6: 计分与升级 > F. 交庄判定 > F2: 攻方胜 → 逆时针交庄 [0.05ms]
+(pass) M6: 计分与升级 > F. 交庄判定 > F3: 东的队友是西 [0.06ms]
+(pass) M6: 计分与升级 > G. 胜利判定 > G1: 升过A获胜 [0.04ms]
+
+tests/follow-validator.test.ts:
+✓ M4 测试完成
+(pass) M4: 跟牌引擎 > 无同门牌时可出任意牌 [0.11ms]
+(pass) M4: 跟牌引擎 > 有同门牌时必须出同门 [0.09ms]
+(pass) M4: 跟牌引擎 > 自动补选功能 [0.13ms]
+(pass) M4: 跟牌引擎 > 回归: 甩牌含多对子时自动补选必须满足对子优先 [0.52ms]
+
+tests/lead-validator.test.ts:
+✓ M3 测试完成
+(pass) M3: 甩牌校验 > A. 非甩牌（单组件直接通过） > A1: 单张♠K [0.10ms]
+(pass) M3: 甩牌校验 > A. 非甩牌（单组件直接通过） > A2: 对子♠KK [0.06ms]
+(pass) M3: 甩牌校验 > A. 非甩牌（单组件直接通过） > A3: 拖拉机♠QQKK [0.08ms]
+(pass) M3: 甩牌校验 > A. 非甩牌（单组件直接通过） > A4: 三张♠KKK [0.06ms]
+(pass) M3: 甩牌校验 > A. 非甩牌（单组件直接通过） > A5: 超级拖拉机♠QQQKKK [0.09ms]
+(pass) M3: 甩牌校验 > B. 甩牌成功 > B1: ♠AA + ♠33（无人能压） [0.28ms]
+(pass) M3: 甩牌校验 > B. 甩牌成功 > B2: ♠AAA + ♠KK（无人能压） [0.10ms]
+(pass) M3: 甩牌校验 > C. 甩牌失败 — 对子被压 > C1: ♠33+♠77 对手有♠88 [0.23ms]
+(pass) M3: 甩牌校验 > C. 甩牌失败 — 对子被压 > C2: ♠33+♠77 对手有♠8899拖拉机 [0.11ms]
+(pass) M3: 甩牌校验 > C. 甩牌失败 — 对子被压 > C3: ♠33+♠77 对手有♠888三张 [0.08ms]
+(pass) M3: 甩牌校验 > D. 甩牌失败 — 单张被压 > D1: ♠KK + ♠3 对手有♠5 [0.15ms]
+(pass) M3: 甩牌校验 > D. 甩牌失败 — 单张被压 > D2: ♠AA + ♠3 对手有♠7 [0.07ms]
+(pass) M3: 甩牌校验 > E. 高阶隐含低阶压制 > E1: ♠33+♠77 对手有♠AAKK拖拉机 [0.09ms]
+(pass) M3: 甩牌校验 > E. 高阶隐含低阶压制 > E2: ♠33+♠77 对手有♠AAA三张 [0.12ms]
+(pass) M3: 甩牌校验 > F. 主牌甩牌 > F1: 主牌♥KK + ♥3 对手有♥A [0.09ms]
+(pass) M3: 甩牌校验 > F. 主牌甩牌 > F2: 主牌♥AA + 大王 对手无更大 [0.09ms]
+(pass) M3: 甩牌校验 > G. 不同门牌不能甩 > G1: ♠KK + ♥33 非法 [0.06ms]
+(pass) M3: 甩牌校验 > G. 不同门牌不能甩 > G2: ♠KK + 大王 非法 [0.06ms]
+
+tests/trump-state.test.ts:
+✓ M7 测试完成
+(pass) M7: 亮主状态机 > 创建初始状态 [0.06ms]
+(pass) M7: 亮主状态机 > 一对红桃2亮主 [0.08ms]
+(pass) M7: 亮主状态机 > 小王×2亮无主 [0.06ms]
+(pass) M7: 亮主状态机 > 三张红桃2亮主 [0.07ms]
+(pass) M7: 亮主状态机 > 无人亮主翻底牌 [0.37ms]
+(pass) M7: 亮主状态机 > 生成GameContext [0.05ms]
+
+tests/kill-validator.test.ts:
+✓ M5 测试完成
+(pass) M5: 杀牌校验 > A. 合法杀牌 — 精确匹配 > A1: ♠K单张 → ♥3主牌单张，合法 [0.08ms]
+(pass) M5: 杀牌校验 > A. 合法杀牌 — 精确匹配 > A2: ♠KK对子 → ♥33主牌对子，合法 [0.08ms]
+(pass) M5: 杀牌校验 > A. 合法杀牌 — 精确匹配 > A3: ♠QQKK拖拉机 → ♥AAKK主牌拖拉机，合法 [0.10ms]
+(pass) M5: 杀牌校验 > A. 合法杀牌 — 精确匹配 > A4: ♠KKK三张 → ♥333主牌三张，合法 [0.06ms]
+(pass) M5: 杀牌校验 > A. 合法杀牌 — 精确匹配 > A5: ♠A单张 → 大王，合法 [0.06ms]
+(pass) M5: 杀牌校验 > B. 合法杀牌 — 高阶包含 > B1: ♠33+♠77两对子 → ♥AAKK主牌拖拉机，合法 [0.10ms]
+(pass) M5: 杀牌校验 > B. 合法杀牌 — 高阶包含 > B2: ♠K+♠QQ单张+对子 → ♥333主牌三张，合法 [0.07ms]
+(pass) M5: 杀牌校验 > B. 合法杀牌 — 高阶包含 > B3: ♠33+♠K对子+单张 → ♥AAA主牌三张，合法 [0.08ms]
+(pass) M5: 杀牌校验 > C. 非法杀牌 > C1: ♠KK对子 → ♥3+♠7含非主牌，非法（垫牌） [0.04ms]
+(pass) M5: 杀牌校验 > C. 非法杀牌 > C2: ♠KK对子 → ♥3+♥9两单张不成对，非法（垫牌） [0.05ms]
+(pass) M5: 杀牌校验 > C. 非法杀牌 > C3: ♠KKK三张 → ♥AA+♥3对子+单张，非法（垫牌） [0.08ms]
+(pass) M5: 杀牌校验 > C. 非法杀牌 > C4: ♠QQKK拖拉机 → ♥AAKK拖拉机长度不够，非法（垫牌） [0.09ms]
+(pass) M5: 杀牌校验 > D. 多人杀牌比较 > D1: ♠K单张 → 北♥3 vs 南♥9 → 南胜 [0.08ms]
+(pass) M5: 杀牌校验 > D. 多人杀牌比较 > D2: ♠KK对子 → 北♥33 vs 南♥99 → 南胜 [0.10ms]
+(pass) M5: 杀牌校验 > D. 多人杀牌比较 > D3: ♠22+♣22同级对子 → 先出者胜 [0.09ms]
+(pass) M5: 杀牌校验 > D. 多人杀牌比较 > D4: ♠33+♠K对子+单张 → 北♥AA+大王 vs 南♥KK+小王 → 北胜（AA>KK） [0.12ms]
+(pass) M5: 杀牌校验 > E. 甩牌杀牌 > E1: ♠AA+♠K对子+单张 → ♥22+大王，合法 [0.09ms]
+(pass) M5: 杀牌校验 > E. 甩牌杀牌 > E2: ♠AAA+♠KK三张+对子 → ♥222+♥AA，合法 [0.07ms]
+
+tests/deck.test.ts:
+✓ M1 完整测试通过
+(pass) M1: 牌库与排序 > 生成牌库：共162张，每种普通牌3张，大小王各3张 [0.21ms]
+(pass) M1: 牌库与排序 > 发牌：4×39+6=162，不重复 [0.21ms]
+(pass) M1: 牌库与排序 > 打4红桃主：主牌序列正确 [0.25ms]
+(pass) M1: 牌库与排序 > 打4红桃主：黑桃副牌序列 [0.31ms]
+(pass) M1: 牌库与排序 > 打K红桃主：红桃副牌序列无K [0.09ms]
+(pass) M1: 牌库与排序 > 打2红桃主：级牌分类 [0.07ms]
+(pass) M1: 牌库与排序 > 无主局打2：主牌序列 [0.06ms]
+(pass) M1: 牌库与排序 > 手牌排序：大王在最左，方块在最右 [0.12ms]
+(pass) M1: 牌库与排序 > 亮主改变花色后重排序 [0.06ms]
+(pass) M1: 牌库与排序 > cardCompare: 主花色级牌 > 其他花色级牌 [0.04ms]
+(pass) M1: 牌库与排序 > cardCompare: 两张其他花色级牌相等 [0.03ms]
+(pass) M1: 牌库与排序 > 相邻性：大王和小王相邻 [0.03ms]
+(pass) M1: 牌库与排序 > 相邻性：小王和主花色级牌相邻 [0.03ms]
+(pass) M1: 牌库与排序 > 相邻性：主花色级牌和其他花色级牌相邻 [0.03ms]
+(pass) M1: 牌库与排序 > 相邻性：其他花色级牌和主花色A相邻 [0.03ms]
+(pass) M1: 牌库与排序 > 相邻性：打4时黑桃3和5相邻 [0.04ms]
+(pass) M1: 牌库与排序 > 相邻性：打K时红桃Q和A相邻 [0.03ms]
+(pass) M1: 牌库与排序 > 洗牌：改变牌序 [0.09ms]
+(pass) M1: 牌库与排序 > cardCompare: 副牌比较 [0.03ms]
+(pass) M1: 牌库与排序 > 无主局：所有花色级牌同级 [0.06ms]
+
+tests/j-demotion.test.ts:
+(pass) J-demotion settlement (core scoring) > single J on last attack trick => jDemotion true [0.12ms]
+(pass) J-demotion settlement (core scoring) > single A on last attack trick => jDemotion false [0.11ms]
+(pass) J-demotion settlement (core scoring) > tractor JJAA => jDemotion true [0.21ms]
+(pass) J-demotion settlement (core scoring) > tractor AAKK => jDemotion false [0.11ms]
+(pass) J-demotion settlement (core scoring) > throw component pair JJ + single A => true [0.12ms]
+(pass) J-demotion settlement (core scoring) > throw component pair AA + single J => true [0.12ms]
+(pass) J-demotion settlement (core scoring) > resolved kill-throw structure is authoritative (resolved has J => true) [0.09ms]
+(pass) J-demotion settlement (core scoring) > resolved kill-throw structure is authoritative (resolved no J => false) [0.08ms]
+(pass) J-demotion settlement (core scoring) > defense wins last trick => no kitty, no jDemotion [0.08ms]
+(pass) User real examples (trump=heart, dealer=east) > north lead: ♥J => yes [0.12ms]
+(pass) User real examples (trump=heart, dealer=east) > north lead: ♥J♥J => yes [0.10ms]
+(pass) User real examples (trump=heart, dealer=east) > north lead: ♥J♥J♥J => yes [0.08ms]
+(pass) User real examples (trump=heart, dealer=east) > north lead: small小王x2 + ♥Jx2 => yes [0.14ms]
+(pass) User real examples (trump=heart, dealer=east) > north lead: small小王x2 + ♣Jx2 => no [0.09ms]
+(pass) User real examples (trump=heart, dealer=east) > north lead: small小王 + ♣Jx2 => yes [0.08ms]
+(pass) User real examples (trump=heart, dealer=east) > north lead: small小王x2 + ♣J => yes [0.07ms]
+(pass) User real examples (trump=heart, dealer=east) > north lead: small小王x2 + ♣J + ♥A => yes [0.10ms]
+(pass) User real examples (trump=heart, dealer=east) > north lead: small小王x2 + ♥J + big大王 => no [0.13ms]
+(pass) User real examples (trump=heart, dealer=east) > east lead AKK, north smallx2 + ♥J => yes [0.10ms]
+(pass) User real examples (trump=heart, dealer=east) > east lead AKQ, north smallx2 + ♥J => no [0.09ms]
+(pass) User real examples (trump=heart, dealer=east) > east lead AKKQQ, north smallx2 + ♥Jx2 + big => yes [0.11ms]
+(pass) User real examples (trump=heart, dealer=east) > east lead AKKJJ, north smallx2 + ♥Jx2 + big => no [0.10ms]
+
+tests/multi-round-to-A.test.ts:
+✓ Multi-round game tests defined
+(pass) Multi-Round Game Progression: 2 to A > should run single game successfully [23.94ms]
+(pass) Multi-Round Game Progression: 2 to A > should progress levels over multiple games [231.66ms]
+(pass) Multi-Round Game Progression: 2 to A > should correctly rotate dealer after each game [92.05ms]
+(pass) Multi-Round Game Progression: 2 to A > should track team levels correctly across games [147.54ms]
+(pass) Multi-Round Game Progression: 2 to A > should reach victory within reasonable number of games [1854.80ms]
+(pass) Multi-Round Game Progression: 2 to A > should handle J-demotion correctly in multi-round context [299.24ms]
+(pass) Multi-Round Game Progression: 2 to A > should correctly apply upgrade amounts based on score [246.41ms]
+
+=== Multi-level jumps detected ===
+Game 35: NS jumped 8 → 10 (2 levels)
+  ✓ No mandatory levels skipped
+(pass) Multi-Round Game Progression: 2 to A > should respect mandatory levels (2, 5, 10, J, K) [359.63ms]
+(pass) Multi-Round Game Progression: 2 to A > should start from mid-level correctly [331.51ms]
+
+=== Game 1 ===
+Dealer: east, EW Level: 2, NS Level: 2
+  Winner: defender, Score: Dealer=175, Defender=120
+  Next Dealer: north, New Levels: EW=2, NS=2
+
+=== Game 2 ===
+Dealer: north, EW Level: 2, NS Level: 2
+  Winner: defender, Score: Dealer=55, Defender=245
+  Next Dealer: west, New Levels: EW=2, NS=2
+
+=== Game 3 ===
+Dealer: west, EW Level: 2, NS Level: 2
+  Winner: defender, Score: Dealer=155, Defender=135
+  Next Dealer: south, New Levels: EW=2, NS=2
+
+=== Game 4 ===
+Dealer: south, EW Level: 2, NS Level: 2
+  Winner: defender, Score: Dealer=170, Defender=135
+  Next Dealer: east, New Levels: EW=2, NS=2
+
+=== Game 5 ===
+Dealer: east, EW Level: 2, NS Level: 2
+  Winner: defender, Score: Dealer=115, Defender=180
+  Next Dealer: north, New Levels: EW=2, NS=2
+
+=== Game 6 ===
+Dealer: north, EW Level: 2, NS Level: 2
+  Winner: defender, Score: Dealer=150, Defender=155
+  Next Dealer: west, New Levels: EW=2, NS=2
+
+=== Game 7 ===
+Dealer: west, EW Level: 2, NS Level: 2
+  Winner: defender, Score: Dealer=170, Defender=130
+  Next Dealer: south, New Levels: EW=2, NS=2
+
+=== Game 8 ===
+Dealer: south, EW Level: 2, NS Level: 2
+  Winner: defender, Score: Dealer=195, Defender=135
+  Next Dealer: east, New Levels: EW=2, NS=2
+
+=== Game 9 ===
+Dealer: east, EW Level: 2, NS Level: 2
+  Winner: dealer, Score: Dealer=180, Defender=110
+  Next Dealer: west, New Levels: EW=3, NS=2
+
+=== Game 10 ===
+Dealer: west, EW Level: 3, NS Level: 2
+  Winner: dealer, Score: Dealer=195, Defender=90
+  Next Dealer: east, New Levels: EW=4, NS=2
+
+=== Game 11 ===
+Dealer: east, EW Level: 4, NS Level: 2
+  Winner: defender, Score: Dealer=120, Defender=180
+  Next Dealer: north, New Levels: EW=4, NS=2
+
+=== Game 12 ===
+Dealer: north, EW Level: 4, NS Level: 2
+  Winner: defender, Score: Dealer=140, Defender=155
+  Next Dealer: west, New Levels: EW=4, NS=2
+
+=== Game 13 ===
+Dealer: west, EW Level: 4, NS Level: 2
+  Winner: defender, Score: Dealer=115, Defender=175
+  Next Dealer: south, New Levels: EW=4, NS=2
+
+=== Game 14 ===
+Dealer: south, EW Level: 4, NS Level: 2
+  Winner: defender, Score: Dealer=140, Defender=150
+  Next Dealer: east, New Levels: EW=4, NS=2
+
+=== Game 15 ===
+Dealer: east, EW Level: 4, NS Level: 2
+  Winner: defender, Score: Dealer=70, Defender=245
+  Next Dealer: north, New Levels: EW=4, NS=2
+
+=== Game 16 ===
+Dealer: north, EW Level: 4, NS Level: 2
+  Winner: defender, Score: Dealer=120, Defender=170
+  Next Dealer: west, New Levels: EW=4, NS=2
+
+=== Game 17 ===
+Dealer: west, EW Level: 4, NS Level: 2
+  Winner: dealer, Score: Dealer=235, Defender=55
+  Next Dealer: east, New Levels: EW=5, NS=2
+
+=== Game 18 ===
+Dealer: east, EW Level: 5, NS Level: 2
+  Winner: dealer, Score: Dealer=215, Defender=85
+  Next Dealer: west, New Levels: EW=6, NS=2
+
+=== Game 19 ===
+Dealer: west, EW Level: 6, NS Level: 2
+  Winner: defender, Score: Dealer=140, Defender=165
+  Next Dealer: south, New Levels: EW=6, NS=2
+
+=== Game 20 ===
+Dealer: south, EW Level: 6, NS Level: 2
+  Winner: defender, Score: Dealer=155, Defender=145
+  Next Dealer: east, New Levels: EW=6, NS=2
+
+=== Game 21 ===
+Dealer: east, EW Level: 6, NS Level: 2
+  Winner: dealer, Score: Dealer=210, Defender=80
+  Next Dealer: west, New Levels: EW=7, NS=2
+
+=== Game 22 ===
+Dealer: west, EW Level: 7, NS Level: 2
+  Winner: defender, Score: Dealer=130, Defender=175
+  Next Dealer: south, New Levels: EW=7, NS=2
+
+=== Game 23 ===
+Dealer: south, EW Level: 7, NS Level: 2
+  Winner: defender, Score: Dealer=70, Defender=230
+  Next Dealer: east, New Levels: EW=8, NS=2
+
+=== Game 24 ===
+Dealer: east, EW Level: 8, NS Level: 2
+  Winner: defender, Score: Dealer=155, Defender=145
+  Next Dealer: north, New Levels: EW=8, NS=2
+
+=== Game 25 ===
+Dealer: north, EW Level: 8, NS Level: 2
+  Winner: dealer, Score: Dealer=235, Defender=60
+  Next Dealer: south, New Levels: EW=8, NS=3
+
+=== Game 26 ===
+Dealer: south, EW Level: 8, NS Level: 3
+  Winner: defender, Score: Dealer=60, Defender=230
+  Next Dealer: east, New Levels: EW=9, NS=3
+
+=== Game 27 ===
+Dealer: east, EW Level: 9, NS Level: 3
+  Winner: defender, Score: Dealer=50, Defender=250
+  Next Dealer: north, New Levels: EW=9, NS=5
+
+=== Game 28 ===
+Dealer: north, EW Level: 9, NS Level: 5
+  Winner: dealer, Score: Dealer=235, Defender=65
+  Next Dealer: south, New Levels: EW=9, NS=6
+
+=== Game 29 ===
+Dealer: south, EW Level: 9, NS Level: 6
+  Winner: defender, Score: Dealer=115, Defender=185
+  Next Dealer: east, New Levels: EW=10, NS=6
+
+=== Game 30 ===
+Dealer: east, EW Level: 10, NS Level: 6
+  Winner: defender, Score: Dealer=125, Defender=180
+  Next Dealer: north, New Levels: EW=10, NS=7
+
+=== Game 31 ===
+Dealer: north, EW Level: 10, NS Level: 7
+  Winner: defender, Score: Dealer=125, Defender=190
+  Next Dealer: west, New Levels: EW=10, NS=7
+
+=== Game 32 ===
+Dealer: west, EW Level: 10, NS Level: 7
+  Winner: dealer, Score: Dealer=245, Defender=55
+  Next Dealer: east, New Levels: EW=J, NS=7
+
+=== Game 33 ===
+Dealer: east, EW Level: J, NS Level: 7
+  Winner: defender, Score: Dealer=125, Defender=180
+  Next Dealer: north, New Levels: EW=J, NS=8
+
+=== Game 34 ===
+Dealer: north, EW Level: J, NS Level: 8
+  Winner: defender, Score: Dealer=135, Defender=150
+  Next Dealer: west, New Levels: EW=J, NS=8
+
+=== Game 35 ===
+Dealer: west, EW Level: J, NS Level: 8
+  Winner: defender, Score: Dealer=180, Defender=120
+  Next Dealer: south, New Levels: EW=J, NS=8
+
+=== Game 36 ===
+Dealer: south, EW Level: J, NS Level: 8
+  Winner: defender, Score: Dealer=165, Defender=135
+  Next Dealer: east, New Levels: EW=J, NS=8
+
+=== Game 37 ===
+Dealer: east, EW Level: J, NS Level: 8
+  Winner: defender, Score: Dealer=115, Defender=195
+  Next Dealer: north, New Levels: EW=J, NS=9
+
+=== Game 38 ===
+Dealer: north, EW Level: J, NS Level: 9
+  Winner: defender, Score: Dealer=115, Defender=170
+  Next Dealer: west, New Levels: EW=J, NS=9
+
+=== Game 39 ===
+Dealer: west, EW Level: J, NS Level: 9
+  ⚠️ J-demotion triggered!
+  Winner: defender, Score: Dealer=85, Defender=215
+  Next Dealer: south, New Levels: EW=2, NS=10
+
+=== Game 40 ===
+Dealer: south, EW Level: 2, NS Level: 10
+  Winner: defender, Score: Dealer=115, Defender=190
+  Next Dealer: east, New Levels: EW=2, NS=10
+
+=== Game 41 ===
+Dealer: east, EW Level: 2, NS Level: 10
+  Winner: dealer, Score: Dealer=210, Defender=100
+  Next Dealer: west, New Levels: EW=3, NS=10
+
+=== Game 42 ===
+Dealer: west, EW Level: 3, NS Level: 10
+  Winner: defender, Score: Dealer=145, Defender=140
+  Next Dealer: south, New Levels: EW=3, NS=10
+
+=== Game 43 ===
+Dealer: south, EW Level: 3, NS Level: 10
+  Winner: dealer, Score: Dealer=200, Defender=100
+  Next Dealer: north, New Levels: EW=3, NS=J
+
+=== Game 44 ===
+Dealer: north, EW Level: 3, NS Level: J
+  Winner: defender, Score: Dealer=175, Defender=130
+  Next Dealer: west, New Levels: EW=3, NS=J
+
+=== Game 45 ===
+Dealer: west, EW Level: 3, NS Level: J
+  Winner: dealer, Score: Dealer=200, Defender=105
+  Next Dealer: east, New Levels: EW=4, NS=J
+
+=== Game 46 ===
+Dealer: east, EW Level: 4, NS Level: J
+  Winner: defender, Score: Dealer=165, Defender=135
+  Next Dealer: north, New Levels: EW=4, NS=J
+
+=== Game 47 ===
+Dealer: north, EW Level: 4, NS Level: J
+  Winner: defender, Score: Dealer=145, Defender=150
+  Next Dealer: west, New Levels: EW=4, NS=J
+
+=== Game 48 ===
+Dealer: west, EW Level: 4, NS Level: J
+  Winner: defender, Score: Dealer=110, Defender=185
+  Next Dealer: south, New Levels: EW=4, NS=J
+
+=== Game 49 ===
+Dealer: south, EW Level: 4, NS Level: J
+  Winner: defender, Score: Dealer=135, Defender=165
+  Next Dealer: east, New Levels: EW=4, NS=J
+
+=== Game 50 ===
+Dealer: east, EW Level: 4, NS Level: J
+  Winner: dealer, Score: Dealer=230, Defender=35
+  Next Dealer: west, New Levels: EW=5, NS=J
+
+=== Game 51 ===
+Dealer: west, EW Level: 5, NS Level: J
+  Winner: defender, Score: Dealer=100, Defender=200
+  Next Dealer: south, New Levels: EW=5, NS=J
+
+=== Game 52 ===
+Dealer: south, EW Level: 5, NS Level: J
+  Winner: defender, Score: Dealer=160, Defender=135
+  Next Dealer: east, New Levels: EW=5, NS=J
+
+=== Game 53 ===
+Dealer: east, EW Level: 5, NS Level: J
+  Winner: defender, Score: Dealer=165, Defender=135
+  Next Dealer: north, New Levels: EW=5, NS=J
+
+=== Game 54 ===
+Dealer: north, EW Level: 5, NS Level: J
+  Winner: dealer, Score: Dealer=225, Defender=75
+  Next Dealer: south, New Levels: EW=5, NS=Q
+
+=== Game 55 ===
+Dealer: south, EW Level: 5, NS Level: Q
+  Winner: defender, Score: Dealer=125, Defender=160
+  Next Dealer: east, New Levels: EW=5, NS=Q
+
+=== Game 56 ===
+Dealer: east, EW Level: 5, NS Level: Q
+  Winner: defender, Score: Dealer=155, Defender=145
+  Next Dealer: north, New Levels: EW=5, NS=Q
+
+=== Game 57 ===
+Dealer: north, EW Level: 5, NS Level: Q
+  Winner: dealer, Score: Dealer=245, Defender=50
+  Next Dealer: south, New Levels: EW=5, NS=K
+
+=== Game 58 ===
+Dealer: south, EW Level: 5, NS Level: K
+  Winner: defender, Score: Dealer=75, Defender=230
+  Next Dealer: east, New Levels: EW=5, NS=K
+
+=== Game 59 ===
+Dealer: east, EW Level: 5, NS Level: K
+  Winner: defender, Score: Dealer=120, Defender=180
+  Next Dealer: north, New Levels: EW=5, NS=K
+
+=== Game 60 ===
+Dealer: north, EW Level: 5, NS Level: K
+  Winner: defender, Score: Dealer=70, Defender=235
+  Next Dealer: west, New Levels: EW=5, NS=K
+
+=== Game 61 ===
+Dealer: west, EW Level: 5, NS Level: K
+  Winner: defender, Score: Dealer=155, Defender=145
+  Next Dealer: south, New Levels: EW=5, NS=K
+
+=== Game 62 ===
+Dealer: south, EW Level: 5, NS Level: K
+  Winner: defender, Score: Dealer=115, Defender=195
+  Next Dealer: east, New Levels: EW=5, NS=K
+
+=== Game 63 ===
+Dealer: east, EW Level: 5, NS Level: K
+  Winner: defender, Score: Dealer=175, Defender=125
+  Next Dealer: north, New Levels: EW=5, NS=K
+
+=== Game 64 ===
+Dealer: north, EW Level: 5, NS Level: K
+  Winner: dealer, Score: Dealer=225, Defender=75
+  Next Dealer: south, New Levels: EW=5, NS=A
+
+=== Game 65 ===
+Dealer: south, EW Level: 5, NS Level: A
+  Winner: dealer, Score: Dealer=230, Defender=65
+  Next Dealer: north, New Levels: EW=5, NS=AA
+
+🎉 North-South team passed A and wins!
+
+=== Multi-Round Simulation Summary ===
+Total games: 65
+Victory: true
+Winning team: northSouth
+Final levels: EW=5, NS=AA
+Max levels reached: EW=J, NS=AA
+J-demotion count: 1
+Dealer wins: 16, Defender wins: 49
+(pass) Multi-Round Game Progression: 2 to A > full game simulation: 2 to A with verbose output [578.25ms]
+
+=== Stress Test Results ===
+Simulation 1: 54 games, Victory: true, Winner: northSouth
+Simulation 2: 31 games, Victory: true, Winner: eastWest
+Simulation 3: 52 games, Victory: true, Winner: eastWest
+(pass) Multi-Round Game Progression: 2 to A > stress test: run multiple full simulations [1187.12ms]
+
+tests/play-strategy-cover-mode.test.ts:
+(pass) play-strategy cover mode scope > aggressive/conservative should be identical when cannot beat [0.30ms]
+(pass) play-strategy cover mode scope > aggressive differs only when both can beat [0.14ms]
+
+ 159 pass
+ 0 fail
+ 640 expect() calls
+Ran 159 tests across 11 files. [5.56s]
