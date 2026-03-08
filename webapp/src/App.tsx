@@ -646,7 +646,7 @@ export function App(){
 
       {state && (
         <>
-          <div className="panel small">{t(lang, 'phase')}: {t(lang, state.phase)} | {t(lang, 'mode')}: {t(lang, state.mode)} | {t(lang, 'trump')}: {state.trump ? `${t(lang, state.trump.suit)}/${t(lang, state.trump.declarer)}` : t(lang, 'noSuit')} | {t(lang, 'currentTurn')}: {state.currentTurn ? t(lang, state.currentTurn) : '-'}</div>
+          <div className="panel small">{t(lang, 'phase')}: {t(lang, state.phase)} | {t(lang, 'mode')}: {t(lang, state.mode)} | {t(lang, 'trump')}: {state.trump ? `${state.trump.suit ? t(lang, state.trump.suit) : t(lang, 'noSuit')}/${t(lang, state.trump.declarer)}` : t(lang, 'noSuit')} | {t(lang, 'currentTurn')}: {state.currentTurn ? t(lang, state.currentTurn) : '-'}</div>
           
           <div className="panel">
             <b>{t(lang, 'score')}: {defenderTotal}</b>
@@ -662,9 +662,9 @@ export function App(){
 
           {state.connectedPlayers && (
             <div className="panel small">
-              {t(lang, 'connectedPlayers')}: {state.connectedPlayers.join(', ')}
+              {t(lang, 'connectedPlayers')}: {state.connectedPlayers.map((p: string) => t(lang, p as any)).join(', ')}
               {state.waitingFor && state.waitingFor.length > 0 && (
-                <span className="text-orange-600 ml-2">{t(lang, 'waiting')}: {state.waitingFor.join(', ')}</span>
+                <span className="text-orange-600 ml-2">{t(lang, 'waiting')}: {state.waitingFor.map((p: string) => t(lang, p as any)).join(', ')}</span>
               )}
             </div>
           )}
