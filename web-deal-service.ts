@@ -868,7 +868,8 @@ async function handlePlayGeneric(req: Request, deps: any, playerSeat: Seat): Pro
     };
     
     s.currentLeader = winner;
-    s.currentTrick = [];
+    // 不要立即清空 currentTrick，让前端可以显示1秒
+    // s.currentTrick = [];  // 这行移到 handleNextRound 中
     s.waitingNextRound = true;
 
     const totalRemaining = Array.from(state.hands.values()).reduce((sum, h) => sum + h.length, 0);
@@ -899,6 +900,7 @@ async function handleNextRound(req: Request, deps: any): Promise<Response> {
   if (s.phase !== "play") return json({ error: "not in play phase" }, 400);
 
   s.waitingNextRound = false;
+  s.currentTrick = []; // 1秒后再清空，让前端可以显示本轮的牌
 
   const state = s.engine.getState();
   
@@ -1101,7 +1103,8 @@ async function handleAdvancePlay(req: Request, deps: any): Promise<Response> {
       };
       
       s.currentLeader = winner;
-      s.currentTrick = [];
+      // 不要立即清空 currentTrick，让前端可以显示1秒
+      // s.currentTrick = [];  // 这行移到 handleNextRound 中
       s.waitingNextRound = true;
 
       const totalRemaining = Array.from(state.hands.values()).reduce((sum, h) => sum + h.length, 0);
