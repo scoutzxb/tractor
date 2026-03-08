@@ -39,6 +39,60 @@ function sortHand(cards:Card[], level:string, trumpSuit?:string|null){
   })
 }
 
+const sortPlayedCards = (cards: Card[], leadCards: Card[] | null, isLeader: boolean, level: string, trumpSuit: string | null): Card[] => {
+  const sorted = [...cards]
+  
+  // 获取牌的花色（主牌算同一花色）
+  const getSuit = (c: Card): string => {
+    if (c.joker) return 'trump'
+    if (c.rank === level) return 'trump'
+    return c.suit || ''
+  }
+  
+  // 牌的点数（用于排序）
+  const cardValue = (c: Card): number => {
+    if (c.joker === 'big') return 1000
+    if (c.joker === 'small') return 900
+    if (c.rank === level) return 800 + (c.suit === trumpSuit ? 100 : 0)
+    const rankValues: Record<string, number> = { A: 14, K: 13, Q: 12, J: 11, 10: 10, 9: 9, 8: 8, 7: 7, 6: 6, 5: 5, 4: 4, 3: 3, 2: 2 }
+    return (rankValues[c.rank || ''] || 0) + (c.suit === trumpSuit ? 100 : 0)
+  }
+  
+  if (isLeader) {
+    // 首家：直接按大小排序
+    return sorted.sort((a, b) => cardValue(b) - cardValue(a))
+  }
+  
+  // 跟牌者
+  if (!leadCards || leadCards.length === 0) {
+    // 没有首家信息，按花色再按大小排序
+    const suitOrder: Record<string, number> = { trump: 0, spade: 1, heart: 2, club: 3, diamond: 4, '': 5 }
+    return sorted.sort((a, b) => {
+      const suitA = getSuit(a)
+      const suitB = getSuit(b)
+      if (suitA !== suitB) return suitOrder[suitA] - suitOrder[suitB]
+      return cardValue(b) - cardValue(a)
+    })
+  }
+  
+  // 获取首家的领头花色（第一家出的非主牌花色，或主牌）
+  const leadSuit = getSuit(leadCards[0])
+  
+  // 跟牌者：先按与首家相同花色，再按其他花色
+  return sorted.sort((a, b) => {
+    const suitA = getSuit(a)
+    const suitB = getSuit(b)
+    const isLeadA = suitA === leadSuit ? 1 : 0
+    const isLeadB = suitB === leadSuit ? 1 : 0
+    if (isLeadA !== isLeadB) return isLeadB - isLeadA  // 相同花色的在前
+    if (suitA !== suitB) {
+      const suitOrder: Record<string, number> = { trump: 0, spade: 1, heart: 2, club: 3, diamond: 4, '': 5 }
+      return suitOrder[suitA] - suitOrder[suitB]
+    }
+    return cardValue(b) - cardValue(a)
+  })
+}
+
 async function post(path:string,body:any){const r=await fetch(path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});return r.json()}
 
 export function App(){
@@ -478,7 +532,32 @@ export function App(){
 
   const hand: Card[] = state?.myHand || []
   const sorted = useMemo(() => sortHand(hand, state?.level || level, state?.trump?.suit || null), [hand, state?.level, state?.trump?.suit, level])
-  const table = state?.tablePlays || { south: [], east: [], north: [], west: [] }
+  const table = useMemo(() => {
+    const raw = state?.tablePlays || { south: [], east: [], north: [], west: [] }
+    const currentLeader = state?.currentLeader
+    const level = state?.level || '2'
+    const trumpSuit = state?.trump?.suit || null
+    
+    // 如果没有数据，直接返回原始数据
+    if (!currentLeader || !raw[currentLeader]?.length) return raw
+    
+    // 获取首家的牌
+    const leadCards = raw[currentLeader]
+    
+    // 对每家进行排序
+    const sorted: Record<string, Card[]> = {}
+    for (const seat of ['east', 'north', 'west', 'south'] as const) {
+      const cards = raw[seat] || []
+      if (cards.length === 0) {
+        sorted[seat] = []
+        continue
+      }
+      const isLeader = seat === currentLeader
+      sorted[seat] = sortPlayedCards(cards, leadCards, isLeader, level, trumpSuit)
+    }
+    
+    return sorted
+  }, [state?.tablePlays, state?.currentLeader, state?.level, state?.trump?.suit])
   const leadCount = (table.east?.length || table.north?.length || table.west?.length || table.south?.length || 0)
   const isMyTurn = state?.phase === 'play' && state?.currentTurn === playerSeat
   const isLeading = isMyTurn && leadCount === 0
@@ -660,29 +739,66 @@ export function App(){
           <div className="panel small">{t(lang, 'phase')}: {t(lang, state.phase)} | {t(lang, 'mode')}: {t(lang, state.mode)} | {t(lang, 'trump')}: {state.trump ? `${state.trump.suit ? t(lang, state.trump.suit) : t(lang, 'noSuit')}/${t(lang, state.trump.declarer)}` : t(lang, 'noSuit')} | {t(lang, 'currentTurn')}: {state.currentTurn ? t(lang, state.currentTurn) : '-'}</div>
           
           <div className="panel">
-            <b>{t(lang, 'score')}: {defenderTotal}</b>
-            <div className="cards">{defenderPointCards.map((c: Card, idx: number) => <span key={`${c.id}-${idx}`} className={cls(c)}>{txt(c)}</span>)}</div>
+            <b>{t(lang, 'youAre')} {playerSeat === 'south' ? t(lang, 'southSeat') : t(lang, 'northSeat')}</b>
+            <span className="ml-4 text-sm text-gray-600">{t(lang, 'gameId')}: {sessionId}</span>
+            <button 
+              onClick={() => setView('lobby')} 
+              className="ml-4 px-2 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
+            >
+              {t(lang, 'backToLobby')}
+            </button>
+            <button 
+              onClick={() => saveGame()} 
+              className="ml-2 px-2 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              {t(lang, 'saveGame')}
+            </button>
+            <button 
+              onClick={listSaves} 
+              className="ml-2 px-2 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              {t(lang, 'loadSave')}
+            </button>
           </div>
 
-          {showKitty && state.kittyHolder === playerSeat && (
+          {/* Saves modal */}
+          {showSaves && (
             <div className="panel">
-              <b>{t(lang, 'kitty')}</b>
-              <div className="cards">{(state.kittyCards || []).map((c: Card) => <span key={c.id} className={cls(c)}>{txt(c)}</span>)}</div>
-            </div>
-          )}
-
-          {state.connectedPlayers && (
-            <div className="panel small">
-              {t(lang, 'connectedPlayers')}: {state.connectedPlayers.map((p: string) => t(lang, p as any)).join(', ')}
-              {state.waitingFor && state.waitingFor.length > 0 && (
-                <span className="text-orange-600 ml-2">{t(lang, 'waiting')}: {state.waitingFor.map((p: string) => t(lang, p as any)).join(', ')}</span>
+              <div className="flex justify-between items-center mb-2">
+                <b>{t(lang, 'savesTitle')}</b>
+                <button onClick={() => setShowSaves(false)} className="text-sm">{t(lang, 'close')}</button>
+              </div>
+              {savedGames.length === 0 ? (
+                <p className="text-gray-600">{t(lang, 'noSaves')}</p>
+              ) : (
+                <div className="space-y-2">
+                  {savedGames.map((save: any) => (
+                    <div key={save.filename} className="flex justify-between items-center p-2 bg-gray-100 rounded">
+                      <div>
+                        <div className="font-medium">{save.filename}</div>
+                        <div className="text-sm text-gray-600">
+                          {t(lang, 'phase')}: {t(lang, save.phase)} | {t(lang, 'level')}: {save.level} | {t(lang, 'dealer')}: {t(lang, save.dealer)}
+                          {save.savedAt && <span className="ml-2">{t(lang, 'savedAt')}: {new Date(save.savedAt).toLocaleString()}</span>}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => loadGame(save.filename)}
+                          className="px-2 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                        >
+                          {t(lang, 'load')}
+                        </button>
+                        <button 
+                          onClick={() => deleteSave(save.filename)}
+                          className="px-2 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                        >
+                          {t(lang, 'delete')}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
-            </div>
-          )}
-
-          {state.phase === 'play' && state.currentTurn === playerSeat && (
-            <div className="panel small">
-              {leadCount === 0 ? t(lang, 'youAreLeader', { count: selected.size }) : t(lang, 'cardsRequired', { required: requiredCount, count: selected.size })}
             </div>
           )}
 

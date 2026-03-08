@@ -451,6 +451,7 @@ export function summarize(session: Session, playerSeat?: Seat) {
     chaoDiOptions: session.phase === "chaodi" ? playerChaoDiOptions : [],
     done: session.done,
     currentTurn,
+    currentLeader: session.currentLeader,
     waitingNextRound: session.waitingNextRound,
     lastRoundReview: session.lastRoundReview,
     scores: Object.fromEntries(seats.map((s) => [s, session.scores.get(s) || 0])),
