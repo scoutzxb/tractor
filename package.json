@@ -1,0 +1,19 @@
+{
+  "name": "tractor",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun run server.ts",
+    "dev:frontend": "cd frontend && bun run dev",
+    "dev:all": "bun run server.ts & cd frontend && bun run dev",
+    "test": "bun test",
+    "cli": "bun cli.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
