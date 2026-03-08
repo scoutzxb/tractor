@@ -101,9 +101,14 @@ export type Session = {
     dealerTeamScore: number;
     defenderTeamScore: number;
     kittyScore: number;
+    kittyBaseScore: number;
+    kittyMultiplier: number;
+    isKittyTaken: boolean;
     totalScore: number;
     winner: 'dealer' | 'defender';
     upgrade: number;
+    defenseUpgrade: number;
+    dealerUpgrade: number;
     nextDealer: Seat;
     nextLevel: Rank;
     nextMode: 'grab' | 'normal';
@@ -630,13 +635,20 @@ function calculateGameResult(session: Session): Session['gameResult'] {
     nextMode
   });
   
+  const kittyBaseScore = getPointCards(state.kitty);
+  
   return {
     dealerTeamScore,
     defenderTeamScore,
     kittyScore: result.kittyScore,
+    kittyBaseScore,
+    kittyMultiplier: result.kittyScore > 0 && kittyBaseScore > 0 ? Math.floor(result.kittyScore / kittyBaseScore) : 1,
+    isKittyTaken: result.kittyScore > 0,
     totalScore: result.totalScore,
     winner,
     upgrade: Math.abs(result.defenseUpgrade) + Math.abs(result.dealerUpgrade),
+    defenseUpgrade: result.defenseUpgrade,
+    dealerUpgrade: result.dealerUpgrade,
     nextDealer: postRoundState.nextDealer,
     nextLevel,
     nextMode
