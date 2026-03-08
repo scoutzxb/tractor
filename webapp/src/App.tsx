@@ -660,31 +660,6 @@ export function App(){
           <div className="panel small">{t(lang, 'phase')}: {t(lang, state.phase)} | {t(lang, 'mode')}: {t(lang, state.mode)} | {t(lang, 'trump')}: {state.trump ? `${state.trump.suit ? t(lang, state.trump.suit) : t(lang, 'noSuit')}/${t(lang, state.trump.declarer)}` : t(lang, 'noSuit')} | {t(lang, 'currentTurn')}: {state.currentTurn ? t(lang, state.currentTurn) : '-'}</div>
           
           <div className="panel">
-            <b>{t(lang, 'youAre')} {playerSeat === 'south' ? t(lang, 'southSeat') : t(lang, 'northSeat')}</b>
-            <span className="ml-4 text-sm text-gray-600">{t(lang, 'gameId')}: {sessionId}</span>
-            <button 
-              onClick={() => setView('lobby')} 
-              className="ml-4 px-2 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
-            >
-              {t(lang, 'backToLobby')}
-            </button>
-            <button 
-              onClick={() => saveGame()} 
-              className="ml-2 px-2 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              {t(lang, 'saveGame')}
-            </button>
-            <button 
-              onClick={listSaves} 
-              className="ml-2 px-2 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              {t(lang, 'loadSave')}
-            </button>
-          </div>
-
-          <div className="panel small">{t(lang, 'phase')}: {t(lang, state.phase)} | {t(lang, 'mode')}: {t(lang, state.mode)} | {t(lang, 'trump')}: {state.trump ? `${state.trump.suit ? t(lang, state.trump.suit) : t(lang, 'noSuit')}/${t(lang, state.trump.declarer)}` : t(lang, 'noSuit')} | {t(lang, 'currentTurn')}: {state.currentTurn ? t(lang, state.currentTurn) : '-'}</div>
-          
-          <div className="panel">
             <b>{t(lang, 'score')}: {defenderTotal}</b>
             <div className="cards">{defenderPointCards.map((c: Card, idx: number) => <span key={`${c.id}-${idx}`} className={cls(c)}>{txt(c)}</span>)}</div>
           </div>
