@@ -1,4 +1,3 @@
-import { t, Language } from './i18n'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 type Card={id:number;suit?:'spade'|'heart'|'club'|'diamond';rank?:string;joker?:'small'|'big'}
@@ -10,6 +9,24 @@ const cls=(c:Card)=>c.joker==='big'?'pcard p-jbig':c.joker==='small'?'pcard p-js
 
 const suitOrderDesc:Record<string,number>={spade:4,heart:3,club:2,diamond:1}
 const rankOrderDesc:Record<string,number>={'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,'J':11,'Q':12,'K':13,'A':14}
+const FOLLOW_SUIT_PRIORITY = ['trump','spade','heart','club','diamond','']
+
+const getPlaySuit = (card: Card, level: string, trumpSuit: string | null): string => {
+  if (card.joker) return 'trump'
+  if (card.rank === level) return 'trump'
+  return card.suit || ''
+}
+
+const getCardValueForSort = (card: Card, level: string, trumpSuit: string | null): number => {
+  if (card.joker === 'big') return 1000
+  if (card.joker === 'small') return 900
+  if (card.rank === level) return 800 + (card.suit === trumpSuit ? 100 : 0)
+  const rankValue = rankOrderDesc[card.rank || ''] || 0
+  return rankValue + (card.suit === trumpSuit ? 100 : 0)
+}
+
+const sortCardsByValue = (cards: Card[], level: string, trumpSuit: string | null): Card[] =>
+  [...cards].sort((a, b) => getCardValueForSort(b, level, trumpSuit) - getCardValueForSort(a, level, trumpSuit))
 
 function sortHand(cards:Card[], level:string, trumpSuit?:string|null){
   const bucket=(c:Card)=>{
@@ -41,55 +58,42 @@ function sortHand(cards:Card[], level:string, trumpSuit?:string|null){
 
 const sortPlayedCards = (cards: Card[], leadCards: Card[] | null, isLeader: boolean, level: string, trumpSuit: string | null): Card[] => {
   const sorted = [...cards]
-  
-  // 获取牌的花色（主牌算同一花色）
-  const getSuit = (c: Card): string => {
-    if (c.joker) return 'trump'
-    if (c.rank === level) return 'trump'
-    return c.suit || ''
-  }
-  
-  // 牌的点数（用于排序）
-  const cardValue = (c: Card): number => {
-    if (c.joker === 'big') return 1000
-    if (c.joker === 'small') return 900
-    if (c.rank === level) return 800 + (c.suit === trumpSuit ? 100 : 0)
-    const rankValues: Record<string, number> = { A: 14, K: 13, Q: 12, J: 11, 10: 10, 9: 9, 8: 8, 7: 7, 6: 6, 5: 5, 4: 4, 3: 3, 2: 2 }
-    return (rankValues[c.rank || ''] || 0) + (c.suit === trumpSuit ? 100 : 0)
-  }
-  
   if (isLeader) {
-    // 首家：直接按大小排序
-    return sorted.sort((a, b) => cardValue(b) - cardValue(a))
+    return sortCardsByValue(sorted, level, trumpSuit)
   }
-  
-  // 跟牌者
-  if (!leadCards || leadCards.length === 0) {
-    // 没有首家信息，按花色再按大小排序
-    const suitOrder: Record<string, number> = { trump: 0, spade: 1, heart: 2, club: 3, diamond: 4, '': 5 }
-    return sorted.sort((a, b) => {
-      const suitA = getSuit(a)
-      const suitB = getSuit(b)
-      if (suitA !== suitB) return suitOrder[suitA] - suitOrder[suitB]
-      return cardValue(b) - cardValue(a)
-    })
-  }
-  
-  // 获取首家的领头花色（第一家出的非主牌花色，或主牌）
-  const leadSuit = getSuit(leadCards[0])
-  
-  // 跟牌者：先按与首家相同花色，再按其他花色
+
+  const leadSuit = leadCards && leadCards.length ? getPlaySuit(leadCards[0], level, trumpSuit) : null
+
   return sorted.sort((a, b) => {
-    const suitA = getSuit(a)
-    const suitB = getSuit(b)
-    const isLeadA = suitA === leadSuit ? 1 : 0
-    const isLeadB = suitB === leadSuit ? 1 : 0
-    if (isLeadA !== isLeadB) return isLeadB - isLeadA  // 相同花色的在前
-    if (suitA !== suitB) {
-      const suitOrder: Record<string, number> = { trump: 0, spade: 1, heart: 2, club: 3, diamond: 4, '': 5 }
-      return suitOrder[suitA] - suitOrder[suitB]
+    const suitA = getPlaySuit(a, level, trumpSuit)
+    const suitB = getPlaySuit(b, level, trumpSuit)
+    const valueA = getCardValueForSort(a, level, trumpSuit)
+    const valueB = getCardValueForSort(b, level, trumpSuit)
+
+    if (leadSuit) {
+      const isLeadA = suitA === leadSuit
+      const isLeadB = suitB === leadSuit
+      if (isLeadA !== isLeadB) {
+        return isLeadB ? 1 : -1
+      }
+      if (isLeadA && isLeadB) {
+        return valueB - valueA
+      }
     }
-    return cardValue(b) - cardValue(a)
+
+    const priorityA = FOLLOW_SUIT_PRIORITY.indexOf(suitA)
+    const priorityB = FOLLOW_SUIT_PRIORITY.indexOf(suitB)
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB
+    }
+
+    if (suitA !== suitB) {
+      const orderA = priorityA === -1 ? FOLLOW_SUIT_PRIORITY.length : priorityA
+      const orderB = priorityB === -1 ? FOLLOW_SUIT_PRIORITY.length : priorityB
+      return orderA - orderB
+    }
+
+    return valueB - valueA
   })
 }
 

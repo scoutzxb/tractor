@@ -1,8 +1,8 @@
 import { serve } from "bun";
 import { GameEngine } from "./src/engine/game-loop";
-import { AIPlayer } from "./src/engine/ai-player";
+import { createAIPlayer } from "./src/engine/ai-player";
 import type { Card, Seat, Rank, GameContext } from "./src/core/types";
-import type { GameState } from "./src/engine/game-loop";
+import type { GameState, Player } from "./src/engine/game-loop";
 
 // 房间管理
 interface Room {
@@ -12,7 +12,7 @@ interface Room {
   gameState: GameState;
   isStarted: boolean;
   gameMode: 'single' | 'dual' | 'four';  // 游戏模式
-  aiPlayers: Map<Seat, AIPlayer>;  // AI玩家
+  aiPlayers: Map<Seat, Player>;  // AI玩家
 }
 
 const rooms = new Map<string, Room>();
@@ -273,7 +273,7 @@ async function handleQuickStart(ws: any, payload: { playerName: string }) {
   // 添加3个AI玩家
   const aiSeats: Seat[] = ["east", "north", "west"];
   for (const seat of aiSeats) {
-    const ai = new AIPlayer(seat, `AI-${seat.toUpperCase()}`);
+  const ai = createAIPlayer(seat, `AI-${seat.toUpperCase()}`);
     room.aiPlayers.set(seat, ai);
     room.engine.registerPlayer(ai);
   }
@@ -300,7 +300,7 @@ async function startGame(room: Room) {
   for (const seat of allSeats) {
     if (!room.players.has(seat) && !room.aiPlayers.has(seat)) {
       // 如果不是真人玩家也不是AI，创建一个AI
-      const ai = new AIPlayer(seat, `AI-${seat.toUpperCase()}`);
+      const ai = createAIPlayer(seat, `AI-${seat.toUpperCase()}`);
       room.aiPlayers.set(seat, ai);
     }
     
