@@ -738,6 +738,11 @@ export function App(){
         <>
           <div className="panel small">{t(lang, 'phase')}: {t(lang, state.phase)} | {t(lang, 'mode')}: {t(lang, state.mode)} | {t(lang, 'trump')}: {state.trump ? `${state.trump.suit ? t(lang, state.trump.suit) : t(lang, 'noSuit')}/${t(lang, state.trump.declarer)}` : t(lang, 'noSuit')} | {t(lang, 'currentTurn')}: {state.currentTurn ? t(lang, state.currentTurn) : '-'}</div>
           
+          <div className="panel">
+            <b>{t(lang, 'score')}: {defenderTotal}</b>
+            <div className="cards">{defenderPointCards.map((c: Card, idx: number) => <span key={`${c.id}-${idx}`} className={cls(c)}>{txt(c)}</span>)}</div>
+          </div>
+
           {/* Saves modal */}
           {showSaves && (
             <div className="panel">
