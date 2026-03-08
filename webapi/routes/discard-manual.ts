@@ -45,18 +45,28 @@ export async function handleDiscardManual(req: Request, deps: any) {
   // Fix: update lastLogIndex after successful discard
   s.lastLogIndex = s.engine.getLogs().length;
 
-  // 初始化炒底轮询状态
+  // 扣底完成后，根据游戏模式决定下一阶段
   const SEATS = ["east", "north", "west", "south"];
   function getNextSeat(seat: string) {
     const idx = SEATS.indexOf(seat);
     return SEATS[(idx + 1) % 4];
   }
 
-  // 扣底完成后进入炒底阶段，从当前 kittyHolder 的下一个座位开始轮询
-  s.phase = "chaodi";
-  s.nextChaodiSeat = getNextSeat(state.trumpState.kittyHolder || state.dealer);
-  s.chaodiRound = 1;
-  s.chaodiPassCount = 0;
+  // 普通模式进入炒底阶段，抢庄模式直接进入出牌阶段
+  if (s.isGrabMode) {
+    // 抢庄模式：直接进入出牌阶段
+    s.phase = "play";
+    s.currentLeader = state.dealer;
+    s.currentTurn = state.dealer;
+    s.roundNumber = 0;
+    s.scores = new Map([["east", 0], ["north", 0], ["west", 0], ["south", 0]]);
+  } else {
+    // 普通模式：进入炒底阶段，从当前 kittyHolder 的下一个座位开始轮询
+    s.phase = "chaodi";
+    s.nextChaodiSeat = getNextSeat(state.trumpState.kittyHolder || state.dealer);
+    s.chaodiRound = 1;
+    s.chaodiPassCount = 0;
+  }
 
   return json({ ok: true, state: summarize(s, playerSeat) });
 }
