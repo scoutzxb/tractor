@@ -676,6 +676,13 @@ export function App(){
         </button>
       </div>
 
+      {showKitty && state.kittyHolder === playerSeat && (
+        <div className="panel">
+          <b>{t(lang, 'kitty')}</b>
+          <div className="cards">{(state.kittyCards || []).map((c: Card) => <span key={c.id} className={cls(c)}>{txt(c)}</span>)}</div>
+        </div>
+      )}
+
       {/* Saves modal */}
       {showSaves && (
         <div className="panel">
