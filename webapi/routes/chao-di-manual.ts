@@ -1,3 +1,5 @@
+import { autoSaveForSeat } from "../autosave";
+
 export async function handleChaoDiManual(req: Request, deps: any) {
   const { sessions, json, summarize, getSouthChaoDiOptions, canChaoDi, chaoDi, createGameContext } = deps;
   const { sessionId, key, playerSeat } = await req.json();
@@ -45,6 +47,7 @@ export async function handleChaoDiManual(req: Request, deps: any) {
   s.phase = "kitty";
   s.awaitingDiscard = true;
   s.pendingChaodiSettle = true;
+  autoSaveForSeat(s, playerSeat);
 
   return json({ ok: true, label: target.label, state: summarize(s, playerSeat) });
 }

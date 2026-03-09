@@ -1,4 +1,5 @@
 import type { Seat } from "../../src/core/types";
+import { autoSaveForAllPlayers } from "../autosave";
 
 // 发牌后等待阶段的tick处理
 // 5秒后自动进入下一阶段（庄家拿底牌扣底牌）
@@ -84,6 +85,8 @@ export async function handlePostDealTick(req: Request, deps: any) {
     dealer: s.engine.getState().dealer,
     kittyHolder: s.engine.getState().trumpState.kittyHolder,
   });
+
+  autoSaveForAllPlayers(s);
 
   return json({
     ok: true,

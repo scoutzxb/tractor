@@ -1,80 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { createGameEngine } from '../../src/engine/game-loop';
-import { SimpleAI } from '../../src/ai/simple-player';
-import type { Seat, Rank } from '../../src/core/types';
+import { deserializeSession } from '../session-utils';
+import type { Seat } from '../../src/core/types';
 
 const SAVES_DIR = path.join(process.cwd(), 'saves');
-
-function deserializeSession(serialized: any, deps: any): any {
-  const { createGameEngine, SimpleAI, makeHumanProxy } = deps;
-  
-  // Create new engine with saved settings
-  const engine = createGameEngine(
-    serialized.engineState.level,
-    serialized.engineState.dealer,
-    serialized.isGrabMode,
-    Date.now()
-  );
-  
-  // Restore engine state
-  engine.restoreState(serialized.engineState);
-  
-  // Re-register players based on saved mode
-  const humanSeats = new Set<Seat>(serialized.humanSeats);
-  
-  engine.registerPlayer(new SimpleAI('east', '东'));
-  engine.registerPlayer(humanSeats.has('north') ? makeHumanProxy('north') : new SimpleAI('north', '北'));
-  engine.registerPlayer(new SimpleAI('west', '西'));
-  engine.registerPlayer(humanSeats.has('south') ? makeHumanProxy('south') : new SimpleAI('south', '南'));
-  
-  // Rebuild session
-  const session = {
-    id: serialized.id,
-    engine,
-    deck: [],
-    round: serialized.round,
-    done: serialized.done,
-    phase: serialized.phase,
-    awaitingDiscard: serialized.awaitingDiscard,
-    pendingChaodiSettle: serialized.pendingChaodiSettle,
-    mode: serialized.mode,
-    isGrabMode: serialized.isGrabMode,
-    configuredLevel: serialized.configuredLevel,
-    configuredDealer: serialized.configuredDealer,
-    humanSeats,
-    playerMode: serialized.playerMode,
-    isMultiplayer: serialized.isMultiplayer,
-    teamLevels: serialized.teamLevels,
-    exemptions: serialized.exemptions,
-    lastLogIndex: serialized.lastLogIndex,
-    currentLeader: serialized.currentLeader,
-    currentTrick: serialized.currentTrick,
-    roundNumber: serialized.roundNumber,
-    scores: new Map(Object.entries(serialized.scores)),
-    tricks: serialized.tricks,
-    waitingNextRound: serialized.waitingNextRound,
-    lastRoundReview: serialized.lastRoundReview,
-    gameResult: serialized.gameResult,
-    logger: deps.getLoggerManager('game-logs-web').startNewGame(),
-    dealingCardsLog: serialized.dealingCardsLog.map((log: any) => ({
-      round: log.round,
-      cardsBySeat: new Map(Object.entries(log.cardsBySeat)),
-      declarations: log.declarations
-    })),
-    players: new Map(Object.entries(serialized.players || {}).map(([seat, p]: [string, any]) => [
-      seat,
-      {
-        token: p.token,
-        name: p.name,
-        connectedAt: new Date(p.connectedAt),
-        lastSeen: new Date(p.lastSeen)
-      }
-    ]))
-  };
-  
-  return session;
-}
 
 export async function handleLoadGame(req: Request, deps: any) {
   const { sessions, json, summarize } = deps;

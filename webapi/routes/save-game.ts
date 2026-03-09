@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import type { Session } from '../web-deal-service';
 
 const SAVES_DIR = path.join(process.cwd(), 'saves');
 
@@ -8,7 +9,7 @@ if (!fs.existsSync(SAVES_DIR)) {
   fs.mkdirSync(SAVES_DIR, { recursive: true });
 }
 
-function serializeSession(session: any): any {
+export function serializeSession(session: Session): any {
   return {
     id: session.id,
     round: session.round,
@@ -107,7 +108,7 @@ export async function handleListSaves(req: Request, deps: any) {
     .filter(Boolean)
     .sort((a: any, b: any) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
   
-  return json({ saves: files });
+  return json({ ok: true, saves: files });
 }
 
 export async function handleDeleteSave(req: Request, deps: any) {

@@ -1,4 +1,5 @@
 import type { Seat } from "../../src/core/types";
+import { autoSaveForAllPlayers, autoSaveForSeat } from "../autosave";
 
 const SEATS: Seat[] = ["east", "north", "west", "south"];
 
@@ -53,6 +54,7 @@ export async function handleRunChaodi(req: Request, deps: any) {
 
     if (s.humanSeats.has(currentSeat)) {
       s.nextChaodiSeat = currentSeat;
+      autoSaveForSeat(s, currentSeat);
       return json({
         ok: true,
         logs,
@@ -93,6 +95,7 @@ export async function handleRunChaodi(req: Request, deps: any) {
             s.awaitingDiscard = true;
             s.nextChaodiSeat = getNextSeat(currentSeat);
             s.chaodiPassCount = 0;
+            autoSaveForSeat(s, currentSeat);
             return json({
               ok: true,
               logs: [...logs, "请扣底后继续炒底流程"],
@@ -118,6 +121,8 @@ export async function handleRunChaodi(req: Request, deps: any) {
   if (s.logger && state.ctx) {
     s.logger.recordInitialHands(state.hands, state.ctx);
   }
+
+  autoSaveForAllPlayers(s);
 
   return json({
     ok: true,
@@ -201,6 +206,8 @@ export async function handleChaoDiPass(req: Request, deps: any) {
       s.logger.recordInitialHands(state.hands, state.ctx);
     }
 
+    autoSaveForAllPlayers(s);
+
     return json({
       ok: true,
       passed: true,
@@ -208,6 +215,8 @@ export async function handleChaoDiPass(req: Request, deps: any) {
       state: summarize(s, playerSeat)
     });
   }
+
+  autoSaveForAllPlayers(s);
 
   return json({
     ok: true,

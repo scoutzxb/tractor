@@ -1,3 +1,5 @@
+import { autoSaveForSeat } from "../autosave";
+
 export async function handleDiscardManual(req: Request, deps: any) {
   const { sessions, json, summarize } = deps;
   const { sessionId, cardIds, playerSeat } = await req.json();
@@ -67,6 +69,8 @@ export async function handleDiscardManual(req: Request, deps: any) {
     s.chaodiRound = 1;
     s.chaodiPassCount = 0;
   }
+
+  autoSaveForSeat(s, playerSeat);
 
   return json({ ok: true, state: summarize(s, playerSeat) });
 }

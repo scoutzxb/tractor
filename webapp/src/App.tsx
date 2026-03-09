@@ -123,6 +123,9 @@ export function App(){
   const [showKitty, setShowKitty] = useState(false)
   const [showSaves, setShowSaves] = useState(false)
   const [savedGames, setSavedGames] = useState<any[]>([])
+  const [autosaves, setAutosaves] = useState<any[]>([])
+  const [autosaveLoading, setAutosaveLoading] = useState(false)
+  const [showAutosavePanel, setShowAutosavePanel] = useState(false)
   const [postDealRemaining, setPostDealRemaining] = useState<number>(0) // 倒计时剩余毫秒
   const [countdown, setCountdown] = useState(5) // 结算倒计时
   const timerRef = useRef<number|undefined>(undefined)
@@ -164,9 +167,47 @@ export function App(){
   // List saves
   const listSaves = async () => {
     const d = await post('/api/list-saves', {})
-    if (d.ok) {
-      setSavedGames(d.saves || [])
+    if (d.saves) {
+      setSavedGames(d.saves)
       setShowSaves(true)
+    } else {
+      add(d.error || t(lang, 'loadFailed'))
+    }
+  }
+
+  const listAutosaves = async () => {
+    if (!playerName.trim()) {
+      alert(t(lang, 'enterNameAlert'))
+      return
+    }
+    setAutosaveLoading(true)
+    const d = await post('/api/autosave-list', { playerName: playerName.trim() })
+    setAutosaveLoading(false)
+    if (d.ok) {
+      setAutosaves(d.saves || [])
+      setShowAutosavePanel(true)
+    } else {
+      add(d.error || t(lang, 'loadFailed'))
+    }
+  }
+
+  const resumeAutosave = async (previewMode: 'single' | 'two') => {
+    if (!playerName.trim()) {
+      alert(t(lang, 'enterNameAlert'))
+      return
+    }
+    const d = await post('/api/autosave-load', { playerName: playerName.trim(), playerMode: previewMode })
+    if (d.ok) {
+      setSessionId(d.sessionId)
+      setPlayerToken(d.playerToken)
+      setPlayerSeat(d.playerSeat)
+      setState(d.state)
+      setPlayerMode(d.playerMode || previewMode)
+      if (d.state?.mode) setMode(d.state.mode)
+      if (d.state?.level) setLevel(d.state.level)
+      if (d.state?.dealer) setDealer(d.state.dealer)
+      setView('game')
+      add(d.message || t(lang, 'gameLoaded'))
     } else {
       add(d.error || t(lang, 'loadFailed'))
     }
@@ -198,6 +239,46 @@ export function App(){
       add(d.error || t(lang, 'deleteFailed'))
     }
   }
+
+  const manualSavePanel = showSaves ? (
+    <div className="panel mb-4">
+      <div className="flex justify-between items-center mb-2">
+        <b>{t(lang, 'savesTitle')}</b>
+        <button onClick={() => setShowSaves(false)} className="text-sm">{t(lang, 'close')}</button>
+      </div>
+      {savedGames.length === 0 ? (
+        <p className="text-gray-600">{t(lang, 'noSaves')}</p>
+      ) : (
+        <div className="space-y-2">
+          {savedGames.map((save: any) => (
+            <div key={save.filename} className="flex justify-between items-center p-2 bg-gray-100 rounded">
+              <div>
+                <div className="font-medium">{save.filename}</div>
+                <div className="text-sm text-gray-600">
+                  {t(lang, 'phase')}: {t(lang, save.phase)} | {t(lang, 'level')}: {save.level} | {t(lang, 'dealer')}: {t(lang, save.dealer)}
+                  {save.savedAt && <span className="ml-2">{t(lang, 'savedAt')}: {new Date(save.savedAt).toLocaleString()}</span>}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => loadGame(save.filename)}
+                  className="px-2 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  {t(lang, 'load')}
+                </button>
+                <button 
+                  onClick={() => deleteSave(save.filename)}
+                  className="px-2 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                >
+                  {t(lang, 'delete')}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  ) : null;
 
   // Lobby actions
   const createGame = async () => {
@@ -460,6 +541,11 @@ export function App(){
   }, [state?.myHand, state?.phase])
 
   useEffect(() => {
+    setAutosaves([])
+    setShowAutosavePanel(false)
+  }, [playerName])
+
+  useEffect(() => {
     if (!sessionId || !state) return
     if (state.phase === 'play') {
       post('/api/advance-play', { sessionId, playerSeat }).then((d: any) => {
@@ -641,6 +727,59 @@ export function App(){
           </button>
         </div>
 
+        <div className="panel mb-4">
+          <h2 className="text-xl font-bold mb-2">{t(lang, 'autosaveTitle')}</h2>
+          <button
+            onClick={listAutosaves}
+            disabled={autosaveLoading || !playerName.trim()}
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+          >
+            {autosaveLoading ? t(lang, 'loading') : t(lang, 'autosaveButton')}
+          </button>
+          {showAutosavePanel && (
+            <div className="mt-3 space-y-2">
+              {autosaves.length === 0 ? (
+                <p className="text-sm text-gray-500">{t(lang, 'autosaveNoSaves')}</p>
+              ) : (
+                autosaves.map((save: any) => (
+                  <div key={`${save.playerMode}-${save.playerSeat}`} className="px-3 py-2 bg-gray-900 border border-gray-800 rounded">
+                    <div className="text-sm text-gray-400">
+                      {t(lang, 'autosaveModeLabel')}: {t(lang, save.playerMode === 'single' ? 'singleMode' : 'twoMode')}
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      {t(lang, 'autosavePhaseLabel')}: {t(lang, save.phase)}
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      {t(lang, 'autosaveSeatLabel')}: {t(lang, save.playerSeat)}
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      {t(lang, 'autosaveUpdated')}: {new Date(save.updatedAt).toLocaleString()}
+                    </div>
+                    <button
+                      onClick={() => resumeAutosave(save.playerMode)}
+                      className="mt-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >
+                      {t(lang, 'resumeAutosaveButton')}
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="panel mb-4">
+          <h2 className="text-xl font-bold mb-2">{t(lang, 'savesTitle')}</h2>
+          <button
+            onClick={listSaves}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            {t(lang, 'viewManualSaves')}
+          </button>
+        </div>
+
+        {manualSavePanel}
+
         <div className="panel small text-gray-600">
           <p className="mb-2"><strong>{t(lang, 'gameFlow')}</strong></p>
           <ol className="list-decimal list-inside">
@@ -688,45 +827,6 @@ export function App(){
       )}
 
       {/* Saves modal */}
-      {showSaves && (
-        <div className="panel">
-          <div className="flex justify-between items-center mb-2">
-            <b>{t(lang, 'savesTitle')}</b>
-            <button onClick={() => setShowSaves(false)} className="text-sm">{t(lang, 'close')}</button>
-          </div>
-          {savedGames.length === 0 ? (
-            <p className="text-gray-600">{t(lang, 'noSaves')}</p>
-          ) : (
-            <div className="space-y-2">
-              {savedGames.map((save: any) => (
-                <div key={save.filename} className="flex justify-between items-center p-2 bg-gray-100 rounded">
-                  <div>
-                    <div className="font-medium">{save.filename}</div>
-                    <div className="text-sm text-gray-600">
-                      {t(lang, 'phase')}: {t(lang, save.phase)} | {t(lang, 'level')}: {save.level} | {t(lang, 'dealer')}: {t(lang, save.dealer)}
-                      {save.savedAt && <span className="ml-2">{t(lang, 'savedAt')}: {new Date(save.savedAt).toLocaleString()}</span>}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => loadGame(save.filename)}
-                      className="px-2 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-                    >
-                      {t(lang, 'load')}
-                    </button>
-                    <button 
-                      onClick={() => deleteSave(save.filename)}
-                      className="px-2 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
-                    >
-                      {t(lang, 'delete')}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="panel">
         <select value={mode} onChange={e => setMode(e.target.value)} disabled>
@@ -754,47 +854,7 @@ export function App(){
             <div className="cards">{defenderPointCards.map((c: Card, idx: number) => <span key={`${c.id}-${idx}`} className={cls(c)}>{txt(c)}</span>)}</div>
           </div>
 
-          {/* Saves modal */}
-          {showSaves && (
-            <div className="panel">
-              <div className="flex justify-between items-center mb-2">
-                <b>{t(lang, 'savesTitle')}</b>
-                <button onClick={() => setShowSaves(false)} className="text-sm">{t(lang, 'close')}</button>
-              </div>
-              {savedGames.length === 0 ? (
-                <p className="text-gray-600">{t(lang, 'noSaves')}</p>
-              ) : (
-                <div className="space-y-2">
-                  {savedGames.map((save: any) => (
-                    <div key={save.filename} className="flex justify-between items-center p-2 bg-gray-100 rounded">
-                      <div>
-                        <div className="font-medium">{save.filename}</div>
-                        <div className="text-sm text-gray-600">
-                          {t(lang, 'phase')}: {t(lang, save.phase)} | {t(lang, 'level')}: {save.level} | {t(lang, 'dealer')}: {t(lang, save.dealer)}
-                          {save.savedAt && <span className="ml-2">{t(lang, 'savedAt')}: {new Date(save.savedAt).toLocaleString()}</span>}
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={() => loadGame(save.filename)}
-                          className="px-2 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-                        >
-                          {t(lang, 'load')}
-                        </button>
-                        <button 
-                          onClick={() => deleteSave(save.filename)}
-                          className="px-2 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
-                        >
-                          {t(lang, 'delete')}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
+          {manualSavePanel}
           <div className="panel">
             <b>{t(lang, 'declareOptions')}</b>
             <div className="matrix">{(state.declareOptions || []).map((o: any) => <button key={o.key} onClick={() => declare(o.key)}>{o.label}</button>)}</div>

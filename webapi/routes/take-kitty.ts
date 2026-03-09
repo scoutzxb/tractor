@@ -1,3 +1,5 @@
+import { autoSaveForSeat } from "../autosave";
+
 export async function handleTakeKitty(req: Request, deps: any) {
   const { sessions, json, summarize } = deps;
   const { sessionId, playerSeat } = await req.json();
@@ -18,6 +20,7 @@ export async function handleTakeKitty(req: Request, deps: any) {
   state.hands.set(playerSeat, [...myHand, ...state.kitty]);
   state.kitty = [];
   s.awaitingDiscard = true;
+  autoSaveForSeat(s, playerSeat);
   
   return json({ ok: true, state: summarize(s, playerSeat) });
 }

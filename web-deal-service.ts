@@ -39,6 +39,12 @@ import { handleSaveGame, handleListSaves, handleDeleteSave } from "./webapi/rout
 import { handleLoadGame, handleQuickLoad } from "./webapi/routes/load-game";
 import { handlePostDealTick } from "./webapi/routes/post-deal-tick";
 import { calculateGameResult } from "./src/engine/game-loop";
+import {
+  autoSaveForAllPlayers,
+  autoSaveForSeat,
+  handleAutosaveList,
+  handleAutosaveLoad,
+} from "./webapi/autosave";
 
 const seats: Seat[] = ["east", "north", "west", "south"];
 
@@ -488,6 +494,7 @@ const deps = {
   createGameContext,
   SUIT_NAMES,
   serverLog,
+  getLoggerManager,
   generateToken,
   seats,
 };
@@ -826,7 +833,7 @@ async function handlePlayGeneric(req: Request, deps: any, playerSeat: Seat): Pro
     
     if (!validation.valid && validation.failedComponent) {
       events.push(`甩牌失败: ${validation.reason || '结构被压制'}`);
-      const attemptedCards = leadCardsStrategy(hand, state.ctx!);
+      const attemptedCards = [...cards];
       cards.length = 0;
       cards.push(...validation.failedComponent.cards);
       events.push(`${playerSeat}尝试出牌: ${cardNames(attemptedCards)} → 失败，改出: ${cardNames(cards)}`);
@@ -894,6 +901,7 @@ async function handlePlayGeneric(req: Request, deps: any, playerSeat: Seat): Pro
     }
   }
 
+  autoSaveForSeat(s, playerSeat);
   return json({ ok: true, events, winner, points, state: summarize(s, playerSeat) });
 }
 
@@ -922,9 +930,11 @@ async function handleNextRound(req: Request, deps: any): Promise<Response> {
     s.phase = "done";
     s.gameResult = calculateGameResult(s);
     saveGameLog(s);
+    autoSaveForSeat(s, playerSeat);
     return json({ ok: true, events: ["游戏结束"], state: summarize(s, playerSeat) });
   }
 
+  autoSaveForSeat(s, playerSeat);
   return json({ ok: true, events: [], state: summarize(s, playerSeat) });
 }
 
@@ -1157,6 +1167,8 @@ async function handleDeclareGeneric(req: Request, deps: any, playerSeat: Seat): 
     return json({ error: "declaration failed" }, 400);
   }
 
+  autoSaveForSeat(s, playerSeat);
+
   return json({ ok: true, label: option.label, state: summarize(s, playerSeat) });
 }
 
@@ -1227,6 +1239,8 @@ async function handleChaoDiGeneric(req: Request, deps: any, playerSeat: Seat): P
     newTrump: state.trumpState.currentTrump,
   });
 
+  autoSaveForSeat(s, playerSeat);
+
   return json({ ok: true, label: option.label, state: summarize(s, playerSeat) });
 }
 
@@ -1270,6 +1284,8 @@ async function handleDiscardGeneric(req: Request, deps: any, playerSeat: Seat): 
   
   s.awaitingDiscard = false;
   s.phase = "chaodi";
+
+  autoSaveForSeat(s, playerSeat);
 
   return json({ ok: true, state: summarize(s, playerSeat) });
 }
@@ -1397,6 +1413,14 @@ async function handleRequest(req: Request): Promise<Response> {
 
   if (url.pathname === "/api/load-game" && req.method === "POST") {
     return handleLoadGame(req, deps);
+  }
+
+  if (url.pathname === "/api/autosave-list" && req.method === "POST") {
+    return handleAutosaveList(req, deps);
+  }
+
+  if (url.pathname === "/api/autosave-load" && req.method === "POST") {
+    return handleAutosaveLoad(req, deps);
   }
 
   if (url.pathname === "/api/list-saves" && req.method === "POST") {

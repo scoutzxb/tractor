@@ -1,3 +1,5 @@
+import { autoSaveForSeat } from "../autosave";
+
 export async function handleDeclareManual(req: Request, deps: any) {
   const { sessions, getSouthDeclareOptions, json, summarize } = deps;
   const { sessionId, key, playerSeat } = await req.json();
@@ -10,5 +12,6 @@ export async function handleDeclareManual(req: Request, deps: any) {
   if (!target) return json({ error: "option not valid now" }, 400);
   const ok = s.engine.tryDeclare("south", target.cards);
   if (!ok) return json({ error: "declare rejected by engine" }, 400);
+  autoSaveForSeat(s, playerSeat);
   return json({ ok: true, label: target.label, state: summarize(s, playerSeat) });
 }
