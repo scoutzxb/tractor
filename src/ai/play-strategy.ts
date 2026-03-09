@@ -271,155 +271,534 @@ function buildCandidatesFromSuit(suitCards: Card[], leadCards: Card[], ctx: Game
   // single
   if (need === 1) return suitCards.map(c => [c]);
 
-  // 统一按照comps结构处理
-  // 分析comps结构：需要多少对、多少单牌
-  let needPairs = 0;
-  let needTriples = 0;
-  let needSingles = 0;
-  let needTractorLen = 0;
+  // Analyze lead components
+  const leadInfo = analyzeLeadComponents(comps);
+  const parsed = parseCards(suitCards, ctx);
+  const enumerated = enumerateCards(suitCards, ctx);
+
+  // === SUPER TRACTOR MATCHING ===
+  if (leadInfo.type === 'super_tractor') {
+    return buildSuperTractorCandidates(suitCards, leadInfo, enumerated, parsed, ctx);
+  }
+
+  // === TRIPLE MATCHING ===
+  if (leadInfo.type === 'triple') {
+    return buildTripleCandidates(suitCards, leadInfo, enumerated, parsed, ctx);
+  }
+
+  // === TRACTOR MATCHING ===
+  if (leadInfo.type === 'tractor') {
+    return buildTractorCandidates(suitCards, leadInfo, enumerated, parsed, ctx);
+  }
+
+  // === PAIR MATCHING ===
+  if (leadInfo.type === 'pair') {
+    return buildPairCandidates(suitCards, leadInfo, enumerated, parsed, ctx);
+  }
+
+  // === MIXED STRUCTURES (甩牌) ===
+  return buildMixedCandidates(suitCards, leadInfo, enumerated, parsed, ctx);
+}
+
+// Helper types for lead analysis
+interface LeadInfo {
+  type: 'super_tractor' | 'triple' | 'tractor' | 'pair' | 'mixed';
+  count: number;  // number of structures (e.g., 2 for super_tractor len=2)
+  length?: number;  // for tractor/super_tractor: the length of the chain
+  totalCards: number;
+  components: Array<{ type: string; count: number; length?: number }>;
+}
+
+function analyzeLeadComponents(comps: ParseResult): LeadInfo {
+  if (comps.length === 1) {
+    const c = comps[0];
+    if (c.type === 'super_tractor') {
+      const len = c.length || Math.floor(c.cards.length / 3);
+      return { type: 'super_tractor', count: 1, length: len, totalCards: c.cards.length, components: [{ type: 'super_tractor', count: 1, length: len }] };
+    }
+    if (c.type === 'triple') {
+      return { type: 'triple', count: 1, totalCards: 3, components: [{ type: 'triple', count: 1 }] };
+    }
+    if (c.type === 'tractor') {
+      const len = c.length || Math.floor(c.cards.length / 2);
+      return { type: 'tractor', count: 1, length: len, totalCards: c.cards.length, components: [{ type: 'tractor', count: 1, length: len }] };
+    }
+    if (c.type === 'pair') {
+      return { type: 'pair', count: 1, totalCards: 2, components: [{ type: 'pair', count: 1 }] };
+    }
+  }
+
+  // Mixed structure (甩牌)
+  const components: Array<{ type: string; count: number; length?: number }> = [];
+  let totalCards = 0;
   
   for (const c of comps) {
-    if (c.type === 'pair') needPairs++;
-    else if (c.type === 'triple') needTriples++;
-    else if (c.type === 'tractor') needTractorLen += c.length || Math.floor(c.cards.length / 2);
-    else if (c.type === 'single') needSingles++;
-    else if (c.type === 'super_tractor') {
-      // 三张拖拉机，按三张处理
-      needTriples += c.length || Math.floor(c.cards.length / 3);
+    if (c.type === 'super_tractor') {
+      const len = c.length || Math.floor(c.cards.length / 3);
+      components.push({ type: 'super_tractor', count: 1, length: len });
+      totalCards += len * 3;
+    } else if (c.type === 'triple') {
+      components.push({ type: 'triple', count: 1 });
+      totalCards += 3;
+    } else if (c.type === 'tractor') {
+      const len = c.length || Math.floor(c.cards.length / 2);
+      components.push({ type: 'tractor', count: 1, length: len });
+      totalCards += len * 2;
+    } else if (c.type === 'pair') {
+      components.push({ type: 'pair', count: 1 });
+      totalCards += 2;
+    } else if (c.type === 'single') {
+      components.push({ type: 'single', count: 1 });
+      totalCards += 1;
     }
   }
 
-  const parsed = parseCards(suitCards, ctx);
+  return { type: 'mixed', count: components.length, totalCards, components };
+}
+
+// === SUPER TRACTOR CANDIDATES ===
+function buildSuperTractorCandidates(
+  suitCards: Card[],
+  leadInfo: LeadInfo,
+  enumerated: ReturnType<typeof enumerateCards>,
+  parsed: ParseResult,
+  ctx: GameContext
+): Card[][] {
+  const needLen = leadInfo.length || 2;
+  const need = leadInfo.totalCards;
   const pairs = parsed.filter(c => c.type === 'pair');
   const triples = parsed.filter(c => c.type === 'triple');
+  const out: Card[][] = [];
+
+  // 1. Exact super tractor match (longest to shortest)
+  const exactMatches = enumerated.superTractors
+    .filter(chain => chain.length >= needLen)
+    .sort((a, b) => b.length - a.length);
+  
+  for (const chain of exactMatches) {
+    const cards = chain.slice(0, needLen).flatMap(c => c.cards);
+    if (cards.length === need) {
+      out.push(cards);
+    }
+  }
+
+  if (out.length > 0) return out;
+
+  // Downgrade order for super tractor:
+  // 2. shorter supertractor (longest) + shorter supertractor or triple
+  // 3. triple (same number as super tractor length)
+  // 4. triple + tractor + single / triple + pair + single
+  // 5. tractor (same length) + single
+  // 6. tractor (shorter) + pair + single
+  // 7. tractor (shorter) + single
+  // 8. pair (same number as supertractor length) + single
+  // 9. pair (less than supertractor length) + single
+  // 10. pure single
+
+  // Check if we have enough triples to cover
+  if (triples.length >= needLen) {
+    // Option: use triples (option 3)
+    const selected: Card[] = [];
+    for (let i = 0; i < needLen && i < triples.length; i++) {
+      selected.push(...triples[i].cards);
+    }
+    if (selected.length === need) {
+      out.push(selected);
+    }
+  }
+
+  // Check for shorter super tractor + triple (option 2)
+  if (enumerated.superTractors.length > 0 && triples.length > 0) {
+    for (const chain of enumerated.superTractors) {
+      const chainLen = chain.length;
+      if (chainLen < needLen) {
+        const shortSuperCards = chain.flatMap(c => c.cards);
+        const remainingNeed = need - shortSuperCards.length;
+        
+        // Try another shorter super tractor
+        for (const chain2 of enumerated.superTractors) {
+          if (chain2 !== chain && chain2.length * 3 === remainingNeed) {
+            const cards = [...shortSuperCards, ...chain2.flatMap(c => c.cards)];
+            if (cards.length === need) out.push(cards);
+          }
+        }
+        
+        // Or try triple
+        if (remainingNeed === 3 && triples.length > 0) {
+          for (const t of triples) {
+            const cards = [...shortSuperCards, ...t.cards];
+            if (cards.length === need) out.push(cards);
+          }
+        }
+      }
+    }
+  }
+
+  // Triple + pair + single combinations (option 4)
+  // This is complex; simplified: try to use triples + pairs to cover
+  if (triples.length > 0 && pairs.length > 0) {
+    for (const t of triples) {
+      const remainingNeed = need - 3;
+      if (remainingNeed === 2 && pairs.length > 0) {
+        for (const p of pairs) {
+          const cards = [...t.cards, ...p.cards];
+          if (cards.length === need) out.push(cards);
+        }
+      } else if (remainingNeed > 0) {
+        // triple + fillers
+        const remainingCards = suitCards.filter(c => !t.cards.includes(c));
+        if (remainingCards.length >= remainingNeed) {
+          for (let i = 0; i <= remainingCards.length - remainingNeed; i++) {
+            const fillers = remainingCards.slice(i, i + remainingNeed);
+            out.push([...t.cards, ...fillers]);
+          }
+        }
+      }
+    }
+  }
+
+  // Tractor (same or shorter length) + singles (option 5-7)
   const tractors = parsed.filter(c => c.type === 'tractor');
-
-  // 如果需要拖拉机
-  if (needTractorLen > 0) {
-    const out: Card[][] = [];
-    for (const t of tractors) {
-      if ((t.length || 2) >= needTractorLen) {
-        out.push([...t.cards].slice(0, needTractorLen * 2));
-      }
-    }
-    // 拖拉机不足时，用对子凑
-    if (out.length === 0 && pairs.length >= needTractorLen) {
-      const selected: Card[] = [];
-      for (let i = 0; i < needTractorLen && i < pairs.length; i++) {
-        selected.push(...pairs[i].cards);
-      }
-      if (selected.length === needTractorLen * 2) out.push(selected);
-    }
-    // 对子也不足时，允许降阶
-    if (out.length === 0) {
-      const pairCount = Math.min(pairs.length, needTractorLen);
-      const selected: Card[] = [];
-      for (let i = 0; i < pairCount; i++) {
-        selected.push(...pairs[i].cards);
-      }
-      const singlesNeed = need - selected.length;
-      const remainingCards = suitCards.filter(c => !selected.includes(c));
-      for (let i = 0; i < remainingCards.length && selected.length < need; i++) {
-        selected.push(remainingCards[i]);
-      }
-      if (selected.length === need) out.push(selected);
-    }
-    return out;
-  }
-
-  // 如果需要三张
-  if (needTriples > 0) {
-    const out: Card[][] = [];
-    for (const t of triples) out.push([...t.cards]);
-    // 三张不足时，用对子+单牌凑
-    if (out.length === 0 && pairs.length > 0) {
-      for (const p of pairs) {
-        for (const c of suitCards) {
-          if (!p.cards.includes(c)) out.push([...p.cards, c]);
-        }
-      }
-    }
-    return out;
-  }
-
-  // 如果需要对子
-  if (needPairs > 0) {
-    const byKey = new Map<string, Card[]>();
-    for (const c of suitCards) {
-      const k = getCardKey(c);
-      if (!byKey.has(k)) byKey.set(k, []);
-      byKey.get(k)!.push(c);
-    }
-
-    const allPairs: Card[][] = [];
-    for (const arr of byKey.values()) {
-      if (arr.length >= 2) allPairs.push([arr[0], arr[1]]);
-    }
-    if (allPairs.length > 0) {
-      allPairs.sort((a, b) => compareCardsForStrategy(a[0], b[0], ctx));
-      return allPairs;
-    }
-    if (pairs.length > 0) return pairs.map(p => [...p.cards]);
-    return [];
-  }
-
-  // 如果全是单牌（needSingles === need）
-  if (needSingles === need) {
-    // 返回所有need张牌的组合
-    if (suitCards.length < need) return [];
-    const out: Card[][] = [];
+  for (const t of tractors) {
+    const tLen = t.length || Math.floor(t.cards.length / 2);
+    const tCards = t.cards.slice(0, tLen * 2);
+    const remainingNeed = need - tCards.length;
     
-    // 简单实现：返回所有组合（对于小need值可行）
-    function combine(arr: Card[], k: number, start: number, current: Card[]): void {
-      if (current.length === k) {
-        out.push([...current]);
-        return;
-      }
-      for (let i = start; i < arr.length; i++) {
-        current.push(arr[i]);
-        combine(arr, k, i + 1, current);
-        current.pop();
-      }
-    }
-    combine(suitCards, need, 0, []);
-    return out;
-  }
-
-  // 混合结构：对子 + 单牌
-  if (needPairs > 0 && needSingles > 0) {
-    const out: Card[][] = [];
-    const byKey = new Map<string, Card[]>();
-    for (const c of suitCards) {
-      const k = getCardKey(c);
-      if (!byKey.has(k)) byKey.set(k, []);
-      byKey.get(k)!.push(c);
-    }
-
-    const allPairs: Card[][] = [];
-    for (const arr of byKey.values()) {
-      if (arr.length >= 2) allPairs.push([arr[0], arr[1]]);
-    }
-
-    for (const pair of allPairs) {
-      const remainingCards = suitCards.filter(c => !pair.includes(c));
-      // 从剩余牌中选needSingles张
-      function combineSingles(arr: Card[], k: number, start: number, current: Card[]): void {
-        if (current.length === k) {
-          out.push([...pair, ...current]);
-          return;
-        }
-        for (let i = start; i < arr.length; i++) {
-          current.push(arr[i]);
-          combineSingles(arr, k, i + 1, current);
-          current.pop();
+    if (remainingNeed >= 0) {
+      const remainingCards = suitCards.filter(c => !tCards.includes(c));
+      if (remainingCards.length >= remainingNeed) {
+        // Use remaining cards as fillers
+        for (let i = 0; i <= remainingCards.length - remainingNeed; i++) {
+          const fillers = remainingCards.slice(i, i + remainingNeed);
+          const candidate = [...tCards, ...fillers];
+          if (candidate.length === need) out.push(candidate);
         }
       }
-      combineSingles(remainingCards, needSingles, 0, []);
     }
-    return out;
   }
 
-  return [];
+  // Pairs + singles (option 8-9)
+  if (pairs.length >= needLen) {
+    const selected: Card[] = [];
+    for (let i = 0; i < needLen && i < pairs.length; i++) {
+      selected.push(...pairs[i].cards);
+    }
+    const remainingNeed = need - selected.length;
+    const remainingCards = suitCards.filter(c => !selected.includes(c));
+    if (remainingCards.length >= remainingNeed) {
+      for (let i = 0; i <= remainingCards.length - remainingNeed; i++) {
+        const fillers = remainingCards.slice(i, i + remainingNeed);
+        out.push([...selected, ...fillers]);
+      }
+    }
+  }
+
+  // Pure singles (option 10)
+  if (out.length === 0 && suitCards.length >= need) {
+    const singles = generateCombinations(suitCards, need);
+    out.push(...singles);
+  }
+
+  return out.length > 0 ? out : [];
+}
+
+// === TRIPLE CANDIDATES ===
+function buildTripleCandidates(
+  suitCards: Card[],
+  leadInfo: LeadInfo,
+  enumerated: ReturnType<typeof enumerateCards>,
+  parsed: ParseResult,
+  ctx: GameContext
+): Card[][] {
+  const out: Card[][] = [];
+  const pairs = parsed.filter(c => c.type === 'pair');
+
+  // 1. Exact triple match
+  for (const t of enumerated.triples) {
+    out.push([...t.cards]);
+  }
+
+  if (out.length > 0) return out;
+
+  // Downgrade for triple:
+  // 1. pair + single
+  // 2. pure single
+
+  for (const p of pairs) {
+    const remainingCards = suitCards.filter(c => !p.cards.includes(c));
+    for (const single of remainingCards) {
+      out.push([...p.cards, single]);
+    }
+  }
+
+  if (out.length > 0) return out;
+
+  // Pure singles (any 3 cards)
+  if (suitCards.length >= 3) {
+    const singles = generateCombinations(suitCards, 3);
+    out.push(...singles);
+  }
+
+  return out;
+}
+
+// === TRACTOR CANDIDATES ===
+function buildTractorCandidates(
+  suitCards: Card[],
+  leadInfo: LeadInfo,
+  enumerated: ReturnType<typeof enumerateCards>,
+  parsed: ParseResult,
+  ctx: GameContext
+): Card[][] {
+  const needLen = leadInfo.length || 2;
+  const need = leadInfo.totalCards;
+  const pairs = parsed.filter(c => c.type === 'pair');
+  const tractors = parsed.filter(c => c.type === 'tractor');
+  const out: Card[][] = [];
+
+  // 1. Exact tractor match (longest to shortest)
+  const exactMatches = enumerated.tractors
+    .filter(chain => chain.length >= needLen)
+    .sort((a, b) => b.length - a.length);
+  
+  for (const chain of exactMatches) {
+    const cards = chain.slice(0, needLen).flatMap(c => c.cards);
+    if (cards.length === need) {
+      out.push(cards);
+    }
+  }
+
+  if (out.length > 0) return out;
+
+  // Downgrade for tractor:
+  // 1. tractor of shorter length + pair
+  // 2. tractor of shorter length + pair + single
+  // 3. pairs of same number as tractor length
+  // 4. pair + single
+  // 5. pure single
+
+  // Shorter tractor + pairs/singles
+  for (const t of tractors) {
+    const tLen = t.length || Math.floor(t.cards.length / 2);
+    if (tLen < needLen) {
+      const tCards = t.cards.slice(0, tLen * 2);
+      const remainingNeed = need - tCards.length;
+      const remainingCards = suitCards.filter(c => !tCards.includes(c));
+      
+      if (remainingCards.length >= remainingNeed) {
+        for (let i = 0; i <= remainingCards.length - remainingNeed; i++) {
+          const fillers = remainingCards.slice(i, i + remainingNeed);
+          out.push([...tCards, ...fillers]);
+        }
+      }
+    }
+  }
+
+  // Pairs of same number as tractor length
+  if (pairs.length >= needLen) {
+    const selected: Card[] = [];
+    for (let i = 0; i < needLen && i < pairs.length; i++) {
+      selected.push(...pairs[i].cards);
+    }
+    if (selected.length === need) {
+      out.push(selected);
+    }
+  }
+
+  // Pair + single (if we only have 1 pair but need 4 cards for tractor len=2)
+  if (need === 4 && pairs.length >= 1) {
+    for (const p of pairs) {
+      const remainingCards = suitCards.filter(c => !p.cards.includes(c));
+      if (remainingCards.length >= 2) {
+        for (let i = 0; i <= remainingCards.length - 2; i++) {
+          out.push([...p.cards, remainingCards[i], remainingCards[i + 1]]);
+        }
+      }
+    }
+  }
+
+  // Pure singles
+  if (out.length === 0 && suitCards.length >= need) {
+    const singles = generateCombinations(suitCards, need);
+    out.push(...singles);
+  }
+
+  return out;
+}
+
+// === PAIR CANDIDATES ===
+function buildPairCandidates(
+  suitCards: Card[],
+  leadInfo: LeadInfo,
+  enumerated: ReturnType<typeof enumerateCards>,
+  parsed: ParseResult,
+  ctx: GameContext
+): Card[][] {
+  const out: Card[][] = [];
+
+  // 1. Exact pair matches
+  for (const p of enumerated.pairs) {
+    out.push([...p.cards]);
+  }
+
+  if (out.length > 0) return out;
+
+  // Downgrade: pure singles (any 2 cards)
+  if (suitCards.length >= 2) {
+    const singles = generateCombinations(suitCards, 2);
+    out.push(...singles);
+  }
+
+  return out;
+}
+
+// === MIXED CANDIDATES (甩牌跟牌) ===
+function buildMixedCandidates(
+  suitCards: Card[],
+  leadInfo: LeadInfo,
+  enumerated: ReturnType<typeof enumerateCards>,
+  parsed: ParseResult,
+  ctx: GameContext
+): Card[][] {
+  const need = leadInfo.totalCards;
+  const out: Card[][] = [];
+  
+  // For mixed structures, we need to match each component
+  // Priority: super_tractor > triple > tractor > pair > single
+  
+  // Build a list of required structures
+  const required: Array<{ type: string; length?: number }> = [];
+  for (const comp of leadInfo.components) {
+    for (let i = 0; i < comp.count; i++) {
+      required.push({ type: comp.type, length: comp.length });
+    }
+  }
+  
+  // Sort by priority
+  const priority = { super_tractor: 5, triple: 4, tractor: 3, pair: 2, single: 1 };
+  required.sort((a, b) => (priority[b.type as keyof typeof priority] || 0) - (priority[a.type as keyof typeof priority] || 0));
+
+  // Try to match structures one by one
+  const available = {
+    superTractors: enumerated.superTractors,
+    triples: parsed.filter(c => c.type === 'triple'),
+    tractors: parsed.filter(c => c.type === 'tractor'),
+    pairs: parsed.filter(c => c.type === 'pair'),
+    singles: parsed.filter(c => c.type === 'single')
+  };
+
+  // Generate all combinations of matching the required structures
+  const candidates = generateMixedCandidates(suitCards, required, available, need, ctx);
+  out.push(...candidates);
+
+  // If no valid combinations, fall back to any combination
+  if (out.length === 0 && suitCards.length >= need) {
+    const singles = generateCombinations(suitCards, need);
+    out.push(...singles);
+  }
+
+  return out;
+}
+
+function generateMixedCandidates(
+  suitCards: Card[],
+  required: Array<{ type: string; length?: number }>,
+  available: {
+    superTractors: Array<Array<Component>>;
+    triples: ParseResult;
+    tractors: ParseResult;
+    pairs: ParseResult;
+    singles: ParseResult;
+  },
+  totalNeed: number,
+  ctx: GameContext
+): Card[][] {
+  const results: Card[][] = [];
+  
+  // Helper to get cards for a structure type
+  function getStructureCards(type: string, length?: number): Card[][] {
+    switch (type) {
+      case 'super_tractor':
+        return available.superTractors
+          .filter(chain => chain.length >= (length || 2))
+          .map(chain => chain.slice(0, length || 2).flatMap(c => c.cards));
+      case 'triple':
+        return available.triples.map(t => [...t.cards]);
+      case 'tractor':
+        return available.tractors
+          .filter(t => (t.length || Math.floor(t.cards.length / 2)) >= (length || 2))
+          .map(t => t.cards.slice(0, (length || 2) * 2));
+      case 'pair':
+        return available.pairs.map(p => [...p.cards]);
+      case 'single':
+        return available.singles.map(s => [...s.cards]);
+      default:
+        return [];
+    }
+  }
+
+  // Try each required structure
+  for (const req of required) {
+    const options = getStructureCards(req.type, req.length);
+    for (const option of options) {
+      const remainingCards = suitCards.filter(c => !option.includes(c));
+      const remainingNeed = totalNeed - option.length;
+      
+      if (remainingNeed === 0) {
+        results.push(option);
+      } else if (remainingNeed > 0 && remainingCards.length >= remainingNeed) {
+        // Fill remaining with any cards
+        const remainingRequired = required.filter(r => r !== req);
+        if (remainingRequired.length === 0) {
+          // No more structure requirements, use any cards
+          for (let i = 0; i <= remainingCards.length - remainingNeed; i++) {
+            results.push([...option, ...remainingCards.slice(i, i + remainingNeed)]);
+          }
+        } else {
+          // Recursively match remaining structures
+          const subResults = generateMixedCandidates(
+            remainingCards,
+            remainingRequired,
+            {
+              superTractors: available.superTractors.filter(chain => 
+                !chain.some(c => option.some(oc => c.cards.some(cc => cc.id === oc.id)))),
+              triples: available.triples.filter(t => !t.cards.some(c => option.some(oc => c.id === oc.id))),
+              tractors: available.tractors.filter(t => !t.cards.some(c => option.some(oc => c.id === oc.id))),
+              pairs: available.pairs.filter(p => !p.cards.some(c => option.some(oc => c.id === oc.id))),
+              singles: available.singles.filter(s => !s.cards.some(c => option.some(oc => c.id === oc.id)))
+            },
+            remainingNeed,
+            ctx
+          );
+          for (const sub of subResults) {
+            results.push([...option, ...sub]);
+          }
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
+// Generate all combinations of k cards from arr
+function generateCombinations(arr: Card[], k: number): Card[][] {
+  const out: Card[][] = [];
+  
+  function combine(start: number, current: Card[]): void {
+    if (current.length === k) {
+      out.push([...current]);
+      return;
+    }
+    for (let i = start; i < arr.length; i++) {
+      current.push(arr[i]);
+      combine(i + 1, current);
+      current.pop();
+    }
+  }
+  
+  combine(0, []);
+  return out;
 }
 
 function countPairsByKey(cards: Card[]): number {
@@ -683,7 +1062,7 @@ export function followCardsStrategy(
       .sort((a, b) => {
         const ap = getCardPointValue(a);
         const bp = getCardPointValue(b);
-        if (ap !== bp) return bp - ap;
+        if (ap !== bp) return partnerLeading ? (bp - ap) : (ap - bp);
 
         const aBreak = (keyCount.get(getCardKey(a)) || 1) > 1 ? 1 : 0;
         const bBreak = (keyCount.get(getCardKey(b)) || 1) > 1 ? 1 : 0;
