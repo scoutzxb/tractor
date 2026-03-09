@@ -120,6 +120,10 @@ export type Session = {
     nextMode: 'grab' | 'normal';
   } | null;
   logger: GameLogger;
+  loggedTeamLevels?: {
+    eastWest: Rank;
+    northSouth: Rank;
+  };
   dealingCardsLog: Array<{ round: number; cardsBySeat: Map<Seat, Card>; declarations: Array<{ seat: Seat; cards: Card[] }> }>;
   
   // Player registration for remote multiplayer
@@ -675,6 +679,7 @@ function saveGameLog(session: Session): string | null {
   
   // 保存当前局的级别（在 calculateGameResult 更新之前）
   const currentTeamLevels = { ...session.teamLevels };
+  session.loggedTeamLevels = currentTeamLevels;
   
   for (const trick of session.tricks) {
     session.logger.recordTrick(trick);
@@ -707,9 +712,10 @@ function saveGameLog(session: Session): string | null {
     });
   }
   
+  const teamLevelsForLog = session.loggedTeamLevels || currentTeamLevels;
   const filepath = session.logger.saveLog(
     state.dealer,
-    currentTeamLevels,  // 使用保存的当前局级别
+    teamLevelsForLog,
     state.ctx
   );
   

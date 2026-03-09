@@ -258,6 +258,106 @@ export class GameLogger {
     };
   }
 
+  exportState(): GameLoggerState {
+    return {
+      gameNumber: this.gameNumber,
+      dealingRounds: this.dealingRounds.map((round) => ({
+        round: round.round,
+        cardsBySeat: serializeCardMap(round.cardsBySeat),
+        declarations: round.declarations.map((decl) => ({
+          seat: decl.seat,
+          cards: cloneCards(decl.cards),
+        })),
+      })),
+      kittyCards: cloneCards(this.kittyCards),
+      originalKittyCards: cloneCards(this.originalKittyCards),
+      trumpInfo: this.trumpInfo
+        ? {
+            declarer: this.trumpInfo.declarer!,
+            suit: this.trumpInfo.suit,
+            cards: cloneCards(this.trumpInfo.cards),
+            isNoTrump: this.trumpInfo.isNoTrump,
+          }
+        : null,
+      chaoDiRounds: this.chaoDiRounds.map((cd) => ({
+        seat: cd.seat,
+        cards: cloneCards(cd.cards),
+        success: cd.success,
+        newTrump: cd.newTrump ? { ...cd.newTrump } : null,
+        receivedKitty: cloneCards(cd.receivedKitty),
+        discardedKitty: cloneCards(cd.discardedKitty),
+      })),
+      initialHands: serializeHands(this.initialHands),
+      tricks: this.tricks.map((trick) => ({
+        round: trick.round,
+        leader: trick.leader,
+        plays: trick.plays.map((p) => ({ seat: p.seat, cards: cloneCards(p.cards) })),
+        winner: trick.winner,
+        points: trick.points,
+        resolvedStructure: trick.resolvedStructure,
+        throwFailure: trick.throwFailure
+          ? {
+              seat: trick.throwFailure.seat,
+              attemptedCards: cloneCards(trick.throwFailure.attemptedCards),
+              reason: trick.throwFailure.reason,
+              fallbackCards: cloneCards(trick.throwFailure.fallbackCards),
+            }
+          : undefined,
+      })),
+      finalScores: serializeScoreMap(this.finalScores),
+      gameResult: this.gameResult ? { ...this.gameResult } : null,
+    };
+  }
+
+  restoreState(state: GameLoggerState) {
+    this.gameNumber = state.gameNumber;
+    this.dealingRounds = state.dealingRounds.map((round) => ({
+      round: round.round,
+      cardsBySeat: deserializeCardMap(round.cardsBySeat),
+      declarations: round.declarations.map((decl) => ({
+        seat: decl.seat,
+        cards: cloneCards(decl.cards),
+      })),
+    }));
+    this.kittyCards = cloneCards(state.kittyCards);
+    this.originalKittyCards = cloneCards(state.originalKittyCards);
+    this.trumpInfo = state.trumpInfo
+      ? {
+          declarer: state.trumpInfo.declarer,
+          suit: state.trumpInfo.suit,
+          cards: cloneCards(state.trumpInfo.cards),
+          isNoTrump: state.trumpInfo.isNoTrump,
+        }
+      : null;
+    this.chaoDiRounds = state.chaoDiRounds.map((cd) => ({
+      seat: cd.seat,
+      cards: cloneCards(cd.cards),
+      success: cd.success,
+      newTrump: cd.newTrump ? { ...cd.newTrump } : null,
+      receivedKitty: cloneCards(cd.receivedKitty),
+      discardedKitty: cloneCards(cd.discardedKitty),
+    }));
+    this.initialHands = deserializeHands(state.initialHands);
+    this.tricks = state.tricks.map((trick) => ({
+      round: trick.round,
+      leader: trick.leader,
+      plays: trick.plays.map((p) => ({ seat: p.seat, cards: cloneCards(p.cards) })),
+      winner: trick.winner,
+      points: trick.points,
+      resolvedStructure: trick.resolvedStructure,
+      throwFailure: trick.throwFailure
+        ? {
+            seat: trick.throwFailure.seat,
+            attemptedCards: cloneCards(trick.throwFailure.attemptedCards),
+            reason: trick.throwFailure.reason,
+            fallbackCards: cloneCards(trick.throwFailure.fallbackCards),
+          }
+        : undefined,
+    }));
+    this.finalScores = deserializeScoreMap(state.finalScores);
+    this.gameResult = state.gameResult ? { ...state.gameResult } : null;
+  }
+
   // Generate the log content
   private generateLogContent(dealer: Seat, teamLevels: { eastWest: Rank; northSouth: Rank }, ctx: GameContext | null): string {
     const lines: string[] = [];
@@ -504,4 +604,109 @@ export function getLoggerManager(outputDir?: string): GameLoggerManager {
     globalLoggerManager = new GameLoggerManager(outputDir || "game-logs-web");
   }
   return globalLoggerManager;
+}
+
+function cloneCards(cards: Card[]): Card[] {
+  return cards.map(c => ({ ...c }));
+}
+
+function serializeCardMap(map: Map<Seat, Card>): Record<Seat, Card> {
+  const out: Record<string, Card> = {};
+  for (const [seat, card] of map) {
+    out[seat] = card;
+  }
+  return out as Record<Seat, Card>;
+}
+
+function deserializeCardMap(obj: Record<Seat, Card>): Map<Seat, Card> {
+  const map = new Map<Seat, Card>();
+  for (const seat of Object.keys(obj) as Seat[]) {
+    map.set(seat, obj[seat]);
+  }
+  return map;
+}
+
+function serializeHands(hands: Map<Seat, Card[]>): Record<Seat, Card[]> {
+  const out: Record<string, Card[]> = {};
+  for (const [seat, cards] of hands) {
+    out[seat] = cloneCards(cards);
+  }
+  return out as Record<Seat, Card[]>;
+}
+
+function deserializeHands(obj: Record<Seat, Card[]>): Map<Seat, Card[]> {
+  const map = new Map<Seat, Card[]>();
+  for (const seat of Object.keys(obj) as Seat[]) {
+    map.set(seat, cloneCards(obj[seat]));
+  }
+  return map;
+}
+
+function serializeScoreMap(map: Map<Seat, number>): Record<Seat, number> {
+  const out: Record<string, number> = {};
+  for (const [seat, score] of map) {
+    out[seat] = score;
+  }
+  return out as Record<Seat, number>;
+}
+
+function deserializeScoreMap(obj: Record<Seat, number>): Map<Seat, number> {
+  const map = new Map<Seat, number>();
+  for (const seat of Object.keys(obj) as Seat[]) {
+    map.set(seat, obj[seat]);
+  }
+  return map;
+}
+
+export interface GameLoggerState {
+  gameNumber: number;
+  dealingRounds: Array<{
+    round: number;
+    cardsBySeat: Record<Seat, Card>;
+    declarations: Array<{ seat: Seat; cards: Card[] }>;
+  }>;
+  kittyCards: Card[];
+  originalKittyCards: Card[];
+  trumpInfo: {
+    declarer: Seat;
+    suit: Suit | null;
+    cards: Card[];
+    isNoTrump: boolean;
+  } | null;
+  chaoDiRounds: Array<{
+    seat: Seat;
+    cards: Card[];
+    success: boolean;
+    newTrump: { suit: Suit | null; isNoTrump: boolean } | null;
+    receivedKitty: Card[];
+    discardedKitty: Card[];
+  }>;
+  initialHands: Record<Seat, Card[]>;
+  tricks: Array<{
+    round: number;
+    leader: Seat;
+    plays: Array<{ seat: Seat; cards: Card[] }>;
+    winner: Seat;
+    points: number;
+    resolvedStructure?: any[];
+    throwFailure?: {
+      seat: Seat;
+      attemptedCards: Card[];
+      reason?: string;
+      fallbackCards: Card[];
+    };
+  }>;
+  finalScores: Record<Seat, number>;
+  gameResult: {
+    dealerTeamScore: number;
+    defenderTeamScore: number;
+    kittyBaseScore: number;
+    kittyMultiplier: number;
+    kittyScore: number;
+    isKittyTaken: boolean;
+    totalScore: number;
+    winner: 'dealer' | 'defender';
+    nextDealer: Seat;
+    nextLevel: Rank;
+  } | null;
 }

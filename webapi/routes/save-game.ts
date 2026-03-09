@@ -49,6 +49,8 @@ export function serializeSession(session: Session): any {
         lastSeen: p.lastSeen
       }
     ])),
+    loggedTeamLevels: session.loggedTeamLevels,
+    loggerState: session.logger?.exportState ? session.logger.exportState() : null,
     engineState: session.engine.getSerializableState(),
     savedAt: new Date().toISOString()
   };

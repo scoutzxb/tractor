@@ -47,6 +47,7 @@ export function deserializeSession(serialized: any, deps: any): Session {
     lastRoundReview: serialized.lastRoundReview,
     gameResult: serialized.gameResult,
     logger: deps.getLoggerManager('game-logs-web').startNewGame(),
+    loggedTeamLevels: serialized.loggedTeamLevels,
     dealingCardsLog: serialized.dealingCardsLog.map((log: any) => ({
       round: log.round,
       cardsBySeat: new Map(Object.entries(log.cardsBySeat)),
@@ -62,6 +63,10 @@ export function deserializeSession(serialized: any, deps: any): Session {
       }
     ]))
   };
+
+  if (serialized.loggerState) {
+    session.logger.restoreState(serialized.loggerState);
+  }
 
   return session;
 }
