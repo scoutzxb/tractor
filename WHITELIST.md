@@ -1,6 +1,7 @@
 # Tractor Whitelist
 These are the only files/directories to include in the repo per current preference:
 
+- `WHITELIST.md`
 - `webapp`
 - `webapi`
 - `src`
