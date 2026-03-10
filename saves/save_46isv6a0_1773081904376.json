@@ -1,0 +1,2187 @@
+{
+  "id": "46isv6a0",
+  "round": 39,
+  "done": true,
+  "phase": "play",
+  "awaitingDiscard": false,
+  "pendingChaodiSettle": true,
+  "mode": "normal",
+  "isGrabMode": false,
+  "configuredLevel": "3",
+  "configuredDealer": "east",
+  "humanSeats": [
+    "south"
+  ],
+  "playerMode": "single",
+  "teamLevels": {
+    "eastWest": "3",
+    "northSouth": "2"
+  },
+  "exemptions": {
+    "eastWest": [],
+    "northSouth": []
+  },
+  "lastLogIndex": 6,
+  "currentLeader": "west",
+  "currentTrick": [
+    {
+      "seat": "west",
+      "cards": [
+        {
+          "id": 50,
+          "suit": "diamond",
+          "rank": "K"
+        },
+        {
+          "id": 104,
+          "suit": "diamond",
+          "rank": "K"
+        },
+        {
+          "id": 158,
+          "suit": "diamond",
+          "rank": "K"
+        }
+      ]
+    }
+  ],
+  "roundNumber": 2,
+  "scores": {
+    "east": 20,
+    "north": 0,
+    "west": 20,
+    "south": 0
+  },
+  "tricks": [
+    {
+      "round": 1,
+      "leader": "east",
+      "plays": [
+        {
+          "seat": "east",
+          "cards": [
+            {
+              "id": 146,
+              "suit": "club",
+              "rank": "A"
+            },
+            {
+              "id": 92,
+              "suit": "club",
+              "rank": "A"
+            },
+            {
+              "id": 91,
+              "suit": "club",
+              "rank": "K"
+            },
+            {
+              "id": 145,
+              "suit": "club",
+              "rank": "K"
+            }
+          ]
+        },
+        {
+          "seat": "north",
+          "cards": [
+            {
+              "id": 141,
+              "suit": "club",
+              "rank": "9"
+            },
+            {
+              "id": 33,
+              "suit": "club",
+              "rank": "9"
+            },
+            {
+              "id": 86,
+              "suit": "club",
+              "rank": "8"
+            },
+            {
+              "id": 35,
+              "suit": "club",
+              "rank": "J"
+            }
+          ]
+        },
+        {
+          "seat": "west",
+          "cards": [
+            {
+              "id": 85,
+              "suit": "club",
+              "rank": "7"
+            },
+            {
+              "id": 31,
+              "suit": "club",
+              "rank": "7"
+            },
+            {
+              "id": 32,
+              "suit": "club",
+              "rank": "8"
+            },
+            {
+              "id": 140,
+              "suit": "club",
+              "rank": "8"
+            }
+          ]
+        },
+        {
+          "seat": "south",
+          "cards": [
+            {
+              "id": 36,
+              "suit": "club",
+              "rank": "Q"
+            },
+            {
+              "id": 151,
+              "suit": "diamond",
+              "rank": "6"
+            },
+            {
+              "id": 39,
+              "suit": "diamond",
+              "rank": "2"
+            },
+            {
+              "id": 139,
+              "suit": "club",
+              "rank": "7"
+            }
+          ]
+        }
+      ],
+      "winner": "east",
+      "points": 20,
+      "resolvedStructure": [
+        {
+          "type": "tractor",
+          "cards": [
+            {
+              "id": 146,
+              "suit": "club",
+              "rank": "A"
+            },
+            {
+              "id": 92,
+              "suit": "club",
+              "rank": "A"
+            },
+            {
+              "id": 91,
+              "suit": "club",
+              "rank": "K"
+            },
+            {
+              "id": 145,
+              "suit": "club",
+              "rank": "K"
+            }
+          ],
+          "length": 2
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "leader": "east",
+      "plays": [
+        {
+          "seat": "east",
+          "cards": [
+            {
+              "id": 65,
+              "suit": "spade",
+              "rank": "K"
+            },
+            {
+              "id": 11,
+              "suit": "spade",
+              "rank": "K"
+            }
+          ]
+        },
+        {
+          "seat": "north",
+          "cards": [
+            {
+              "id": 56,
+              "suit": "spade",
+              "rank": "4"
+            },
+            {
+              "id": 110,
+              "suit": "spade",
+              "rank": "4"
+            }
+          ]
+        },
+        {
+          "seat": "west",
+          "cards": [
+            {
+              "id": 12,
+              "suit": "spade",
+              "rank": "A"
+            },
+            {
+              "id": 66,
+              "suit": "spade",
+              "rank": "A"
+            }
+          ]
+        },
+        {
+          "seat": "south",
+          "cards": [
+            {
+              "id": 108,
+              "suit": "spade",
+              "rank": "2"
+            },
+            {
+              "id": 0,
+              "suit": "spade",
+              "rank": "2"
+            }
+          ]
+        }
+      ],
+      "winner": "west",
+      "points": 20,
+      "resolvedStructure": [
+        {
+          "type": "pair",
+          "cards": [
+            {
+              "id": 12,
+              "suit": "spade",
+              "rank": "A"
+            },
+            {
+              "id": 66,
+              "suit": "spade",
+              "rank": "A"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "waitingNextRound": false,
+  "lastRoundReview": {
+    "round": 2,
+    "winner": "west",
+    "points": 20,
+    "plays": [
+      {
+        "seat": "east",
+        "cards": [
+          {
+            "id": 65,
+            "suit": "spade",
+            "rank": "K"
+          },
+          {
+            "id": 11,
+            "suit": "spade",
+            "rank": "K"
+          }
+        ]
+      },
+      {
+        "seat": "north",
+        "cards": [
+          {
+            "id": 56,
+            "suit": "spade",
+            "rank": "4"
+          },
+          {
+            "id": 110,
+            "suit": "spade",
+            "rank": "4"
+          }
+        ]
+      },
+      {
+        "seat": "west",
+        "cards": [
+          {
+            "id": 12,
+            "suit": "spade",
+            "rank": "A"
+          },
+          {
+            "id": 66,
+            "suit": "spade",
+            "rank": "A"
+          }
+        ]
+      },
+      {
+        "seat": "south",
+        "cards": [
+          {
+            "id": 108,
+            "suit": "spade",
+            "rank": "2"
+          },
+          {
+            "id": 0,
+            "suit": "spade",
+            "rank": "2"
+          }
+        ]
+      }
+    ]
+  },
+  "gameResult": null,
+  "dealingCardsLog": [
+    {
+      "round": 1,
+      "cardsBySeat": {
+        "east": {
+          "id": 124,
+          "suit": "heart",
+          "rank": "5"
+        },
+        "north": {
+          "id": 49,
+          "suit": "diamond",
+          "rank": "Q"
+        },
+        "west": {
+          "id": 90,
+          "suit": "club",
+          "rank": "Q"
+        },
+        "south": {
+          "id": 14,
+          "suit": "heart",
+          "rank": "3"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 2,
+      "cardsBySeat": {
+        "east": {
+          "id": 156,
+          "suit": "diamond",
+          "rank": "J"
+        },
+        "north": {
+          "id": 147,
+          "suit": "diamond",
+          "rank": "2"
+        },
+        "west": {
+          "id": 60,
+          "suit": "spade",
+          "rank": "8"
+        },
+        "south": {
+          "id": 117,
+          "suit": "spade",
+          "rank": "J"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 3,
+      "cardsBySeat": {
+        "east": {
+          "id": 30,
+          "suit": "club",
+          "rank": "6"
+        },
+        "north": {
+          "id": 135,
+          "suit": "club",
+          "rank": "3"
+        },
+        "west": {
+          "id": 54,
+          "suit": "spade",
+          "rank": "2"
+        },
+        "south": {
+          "id": 27,
+          "suit": "club",
+          "rank": "3"
+        }
+      },
+      "declarations": [
+        {
+          "seat": "north",
+          "cards": [
+            {
+              "id": 135,
+              "suit": "club",
+              "rank": "3"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "round": 4,
+      "cardsBySeat": {
+        "east": {
+          "id": 0,
+          "suit": "spade",
+          "rank": "2"
+        },
+        "north": {
+          "id": 161,
+          "joker": "small"
+        },
+        "west": {
+          "id": 28,
+          "suit": "club",
+          "rank": "4"
+        },
+        "south": {
+          "id": 39,
+          "suit": "diamond",
+          "rank": "2"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 5,
+      "cardsBySeat": {
+        "east": {
+          "id": 113,
+          "suit": "spade",
+          "rank": "7"
+        },
+        "north": {
+          "id": 81,
+          "suit": "club",
+          "rank": "3"
+        },
+        "west": {
+          "id": 32,
+          "suit": "club",
+          "rank": "8"
+        },
+        "south": {
+          "id": 3,
+          "suit": "spade",
+          "rank": "5"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 6,
+      "cardsBySeat": {
+        "east": {
+          "id": 19,
+          "suit": "heart",
+          "rank": "8"
+        },
+        "north": {
+          "id": 129,
+          "suit": "heart",
+          "rank": "10"
+        },
+        "west": {
+          "id": 52,
+          "joker": "big"
+        },
+        "south": {
+          "id": 7,
+          "suit": "spade",
+          "rank": "9"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 7,
+      "cardsBySeat": {
+        "east": {
+          "id": 57,
+          "suit": "spade",
+          "rank": "5"
+        },
+        "north": {
+          "id": 98,
+          "suit": "diamond",
+          "rank": "7"
+        },
+        "west": {
+          "id": 12,
+          "suit": "spade",
+          "rank": "A"
+        },
+        "south": {
+          "id": 139,
+          "suit": "club",
+          "rank": "7"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 8,
+      "cardsBySeat": {
+        "east": {
+          "id": 109,
+          "suit": "spade",
+          "rank": "3"
+        },
+        "north": {
+          "id": 43,
+          "suit": "diamond",
+          "rank": "6"
+        },
+        "west": {
+          "id": 20,
+          "suit": "heart",
+          "rank": "9"
+        },
+        "south": {
+          "id": 36,
+          "suit": "club",
+          "rank": "Q"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 9,
+      "cardsBySeat": {
+        "east": {
+          "id": 22,
+          "suit": "heart",
+          "rank": "J"
+        },
+        "north": {
+          "id": 79,
+          "suit": "heart",
+          "rank": "A"
+        },
+        "west": {
+          "id": 74,
+          "suit": "heart",
+          "rank": "9"
+        },
+        "south": {
+          "id": 77,
+          "suit": "heart",
+          "rank": "Q"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 10,
+      "cardsBySeat": {
+        "east": {
+          "id": 10,
+          "suit": "spade",
+          "rank": "Q"
+        },
+        "north": {
+          "id": 56,
+          "suit": "spade",
+          "rank": "4"
+        },
+        "west": {
+          "id": 40,
+          "suit": "diamond",
+          "rank": "3"
+        },
+        "south": {
+          "id": 16,
+          "suit": "heart",
+          "rank": "5"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 11,
+      "cardsBySeat": {
+        "east": {
+          "id": 148,
+          "suit": "diamond",
+          "rank": "3"
+        },
+        "north": {
+          "id": 4,
+          "suit": "spade",
+          "rank": "6"
+        },
+        "west": {
+          "id": 67,
+          "suit": "heart",
+          "rank": "2"
+        },
+        "south": {
+          "id": 151,
+          "suit": "diamond",
+          "rank": "6"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 12,
+      "cardsBySeat": {
+        "east": {
+          "id": 61,
+          "suit": "spade",
+          "rank": "9"
+        },
+        "north": {
+          "id": 125,
+          "suit": "heart",
+          "rank": "6"
+        },
+        "west": {
+          "id": 50,
+          "suit": "diamond",
+          "rank": "K"
+        },
+        "south": {
+          "id": 138,
+          "suit": "club",
+          "rank": "6"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 13,
+      "cardsBySeat": {
+        "east": {
+          "id": 53,
+          "joker": "small"
+        },
+        "north": {
+          "id": 25,
+          "suit": "heart",
+          "rank": "A"
+        },
+        "west": {
+          "id": 85,
+          "suit": "club",
+          "rank": "7"
+        },
+        "south": {
+          "id": 82,
+          "suit": "club",
+          "rank": "4"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 14,
+      "cardsBySeat": {
+        "east": {
+          "id": 146,
+          "suit": "club",
+          "rank": "A"
+        },
+        "north": {
+          "id": 59,
+          "suit": "spade",
+          "rank": "7"
+        },
+        "west": {
+          "id": 69,
+          "suit": "heart",
+          "rank": "4"
+        },
+        "south": {
+          "id": 37,
+          "suit": "club",
+          "rank": "K"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 15,
+      "cardsBySeat": {
+        "east": {
+          "id": 91,
+          "suit": "club",
+          "rank": "K"
+        },
+        "north": {
+          "id": 86,
+          "suit": "club",
+          "rank": "8"
+        },
+        "west": {
+          "id": 62,
+          "suit": "spade",
+          "rank": "10"
+        },
+        "south": {
+          "id": 122,
+          "suit": "heart",
+          "rank": "3"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 16,
+      "cardsBySeat": {
+        "east": {
+          "id": 80,
+          "suit": "club",
+          "rank": "2"
+        },
+        "north": {
+          "id": 35,
+          "suit": "club",
+          "rank": "J"
+        },
+        "west": {
+          "id": 66,
+          "suit": "spade",
+          "rank": "A"
+        },
+        "south": {
+          "id": 34,
+          "suit": "club",
+          "rank": "10"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 17,
+      "cardsBySeat": {
+        "east": {
+          "id": 145,
+          "suit": "club",
+          "rank": "K"
+        },
+        "north": {
+          "id": 42,
+          "suit": "diamond",
+          "rank": "5"
+        },
+        "west": {
+          "id": 21,
+          "suit": "heart",
+          "rank": "10"
+        },
+        "south": {
+          "id": 47,
+          "suit": "diamond",
+          "rank": "10"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 18,
+      "cardsBySeat": {
+        "east": {
+          "id": 18,
+          "suit": "heart",
+          "rank": "7"
+        },
+        "north": {
+          "id": 141,
+          "suit": "club",
+          "rank": "9"
+        },
+        "west": {
+          "id": 13,
+          "suit": "heart",
+          "rank": "2"
+        },
+        "south": {
+          "id": 26,
+          "suit": "club",
+          "rank": "2"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 19,
+      "cardsBySeat": {
+        "east": {
+          "id": 41,
+          "suit": "diamond",
+          "rank": "4"
+        },
+        "north": {
+          "id": 93,
+          "suit": "diamond",
+          "rank": "2"
+        },
+        "west": {
+          "id": 132,
+          "suit": "heart",
+          "rank": "K"
+        },
+        "south": {
+          "id": 68,
+          "suit": "heart",
+          "rank": "3"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 20,
+      "cardsBySeat": {
+        "east": {
+          "id": 6,
+          "suit": "spade",
+          "rank": "8"
+        },
+        "north": {
+          "id": 100,
+          "suit": "diamond",
+          "rank": "9"
+        },
+        "west": {
+          "id": 115,
+          "suit": "spade",
+          "rank": "9"
+        },
+        "south": {
+          "id": 128,
+          "suit": "heart",
+          "rank": "9"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 21,
+      "cardsBySeat": {
+        "east": {
+          "id": 89,
+          "suit": "club",
+          "rank": "J"
+        },
+        "north": {
+          "id": 63,
+          "suit": "spade",
+          "rank": "J"
+        },
+        "west": {
+          "id": 70,
+          "suit": "heart",
+          "rank": "5"
+        },
+        "south": {
+          "id": 137,
+          "suit": "club",
+          "rank": "5"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 22,
+      "cardsBySeat": {
+        "east": {
+          "id": 45,
+          "suit": "diamond",
+          "rank": "8"
+        },
+        "north": {
+          "id": 110,
+          "suit": "spade",
+          "rank": "4"
+        },
+        "west": {
+          "id": 136,
+          "suit": "club",
+          "rank": "4"
+        },
+        "south": {
+          "id": 5,
+          "suit": "spade",
+          "rank": "7"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 23,
+      "cardsBySeat": {
+        "east": {
+          "id": 121,
+          "suit": "heart",
+          "rank": "2"
+        },
+        "north": {
+          "id": 126,
+          "suit": "heart",
+          "rank": "7"
+        },
+        "west": {
+          "id": 150,
+          "suit": "diamond",
+          "rank": "5"
+        },
+        "south": {
+          "id": 51,
+          "suit": "diamond",
+          "rank": "A"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 24,
+      "cardsBySeat": {
+        "east": {
+          "id": 142,
+          "suit": "club",
+          "rank": "10"
+        },
+        "north": {
+          "id": 160,
+          "joker": "big"
+        },
+        "west": {
+          "id": 71,
+          "suit": "heart",
+          "rank": "6"
+        },
+        "south": {
+          "id": 133,
+          "suit": "heart",
+          "rank": "A"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 25,
+      "cardsBySeat": {
+        "east": {
+          "id": 153,
+          "suit": "diamond",
+          "rank": "8"
+        },
+        "north": {
+          "id": 144,
+          "suit": "club",
+          "rank": "Q"
+        },
+        "west": {
+          "id": 31,
+          "suit": "club",
+          "rank": "7"
+        },
+        "south": {
+          "id": 95,
+          "suit": "diamond",
+          "rank": "4"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 26,
+      "cardsBySeat": {
+        "east": {
+          "id": 1,
+          "suit": "spade",
+          "rank": "3"
+        },
+        "north": {
+          "id": 99,
+          "suit": "diamond",
+          "rank": "8"
+        },
+        "west": {
+          "id": 38,
+          "suit": "club",
+          "rank": "A"
+        },
+        "south": {
+          "id": 2,
+          "suit": "spade",
+          "rank": "4"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 27,
+      "cardsBySeat": {
+        "east": {
+          "id": 134,
+          "suit": "club",
+          "rank": "2"
+        },
+        "north": {
+          "id": 101,
+          "suit": "diamond",
+          "rank": "10"
+        },
+        "west": {
+          "id": 120,
+          "suit": "spade",
+          "rank": "A"
+        },
+        "south": {
+          "id": 112,
+          "suit": "spade",
+          "rank": "6"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 28,
+      "cardsBySeat": {
+        "east": {
+          "id": 8,
+          "suit": "spade",
+          "rank": "10"
+        },
+        "north": {
+          "id": 114,
+          "suit": "spade",
+          "rank": "8"
+        },
+        "west": {
+          "id": 103,
+          "suit": "diamond",
+          "rank": "Q"
+        },
+        "south": {
+          "id": 76,
+          "suit": "heart",
+          "rank": "J"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 29,
+      "cardsBySeat": {
+        "east": {
+          "id": 87,
+          "suit": "club",
+          "rank": "9"
+        },
+        "north": {
+          "id": 46,
+          "suit": "diamond",
+          "rank": "9"
+        },
+        "west": {
+          "id": 17,
+          "suit": "heart",
+          "rank": "6"
+        },
+        "south": {
+          "id": 108,
+          "suit": "spade",
+          "rank": "2"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 30,
+      "cardsBySeat": {
+        "east": {
+          "id": 123,
+          "suit": "heart",
+          "rank": "4"
+        },
+        "north": {
+          "id": 64,
+          "suit": "spade",
+          "rank": "Q"
+        },
+        "west": {
+          "id": 149,
+          "suit": "diamond",
+          "rank": "4"
+        },
+        "south": {
+          "id": 23,
+          "suit": "heart",
+          "rank": "Q"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 31,
+      "cardsBySeat": {
+        "east": {
+          "id": 96,
+          "suit": "diamond",
+          "rank": "5"
+        },
+        "north": {
+          "id": 159,
+          "suit": "diamond",
+          "rank": "A"
+        },
+        "west": {
+          "id": 88,
+          "suit": "club",
+          "rank": "10"
+        },
+        "south": {
+          "id": 48,
+          "suit": "diamond",
+          "rank": "J"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 32,
+      "cardsBySeat": {
+        "east": {
+          "id": 131,
+          "suit": "heart",
+          "rank": "Q"
+        },
+        "north": {
+          "id": 152,
+          "suit": "diamond",
+          "rank": "7"
+        },
+        "west": {
+          "id": 83,
+          "suit": "club",
+          "rank": "5"
+        },
+        "south": {
+          "id": 155,
+          "suit": "diamond",
+          "rank": "10"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 33,
+      "cardsBySeat": {
+        "east": {
+          "id": 102,
+          "suit": "diamond",
+          "rank": "J"
+        },
+        "north": {
+          "id": 107,
+          "joker": "small"
+        },
+        "west": {
+          "id": 140,
+          "suit": "club",
+          "rank": "8"
+        },
+        "south": {
+          "id": 9,
+          "suit": "spade",
+          "rank": "J"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 34,
+      "cardsBySeat": {
+        "east": {
+          "id": 72,
+          "suit": "heart",
+          "rank": "7"
+        },
+        "north": {
+          "id": 24,
+          "suit": "heart",
+          "rank": "K"
+        },
+        "west": {
+          "id": 104,
+          "suit": "diamond",
+          "rank": "K"
+        },
+        "south": {
+          "id": 154,
+          "suit": "diamond",
+          "rank": "9"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 35,
+      "cardsBySeat": {
+        "east": {
+          "id": 130,
+          "suit": "heart",
+          "rank": "J"
+        },
+        "north": {
+          "id": 119,
+          "suit": "spade",
+          "rank": "K"
+        },
+        "west": {
+          "id": 15,
+          "suit": "heart",
+          "rank": "4"
+        },
+        "south": {
+          "id": 105,
+          "suit": "diamond",
+          "rank": "A"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 36,
+      "cardsBySeat": {
+        "east": {
+          "id": 116,
+          "suit": "spade",
+          "rank": "10"
+        },
+        "north": {
+          "id": 55,
+          "suit": "spade",
+          "rank": "3"
+        },
+        "west": {
+          "id": 158,
+          "suit": "diamond",
+          "rank": "K"
+        },
+        "south": {
+          "id": 157,
+          "suit": "diamond",
+          "rank": "Q"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 37,
+      "cardsBySeat": {
+        "east": {
+          "id": 94,
+          "suit": "diamond",
+          "rank": "3"
+        },
+        "north": {
+          "id": 97,
+          "suit": "diamond",
+          "rank": "6"
+        },
+        "west": {
+          "id": 106,
+          "joker": "big"
+        },
+        "south": {
+          "id": 75,
+          "suit": "heart",
+          "rank": "10"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 38,
+      "cardsBySeat": {
+        "east": {
+          "id": 84,
+          "suit": "club",
+          "rank": "6"
+        },
+        "north": {
+          "id": 44,
+          "suit": "diamond",
+          "rank": "7"
+        },
+        "west": {
+          "id": 143,
+          "suit": "club",
+          "rank": "J"
+        },
+        "south": {
+          "id": 58,
+          "suit": "spade",
+          "rank": "6"
+        }
+      },
+      "declarations": []
+    },
+    {
+      "round": 39,
+      "cardsBySeat": {
+        "east": {
+          "id": 92,
+          "suit": "club",
+          "rank": "A"
+        },
+        "north": {
+          "id": 33,
+          "suit": "club",
+          "rank": "9"
+        },
+        "west": {
+          "id": 118,
+          "suit": "spade",
+          "rank": "Q"
+        },
+        "south": {
+          "id": 111,
+          "suit": "spade",
+          "rank": "5"
+        }
+      },
+      "declarations": []
+    }
+  ],
+  "players": {},
+  "engineState": {
+    "level": "3",
+    "dealer": "east",
+    "hands": {
+      "east": [
+        {
+          "id": 156,
+          "suit": "diamond",
+          "rank": "J"
+        },
+        {
+          "id": 30,
+          "suit": "club",
+          "rank": "6"
+        },
+        {
+          "id": 113,
+          "suit": "spade",
+          "rank": "7"
+        },
+        {
+          "id": 19,
+          "suit": "heart",
+          "rank": "8"
+        },
+        {
+          "id": 57,
+          "suit": "spade",
+          "rank": "5"
+        },
+        {
+          "id": 109,
+          "suit": "spade",
+          "rank": "3"
+        },
+        {
+          "id": 22,
+          "suit": "heart",
+          "rank": "J"
+        },
+        {
+          "id": 10,
+          "suit": "spade",
+          "rank": "Q"
+        },
+        {
+          "id": 148,
+          "suit": "diamond",
+          "rank": "3"
+        },
+        {
+          "id": 61,
+          "suit": "spade",
+          "rank": "9"
+        },
+        {
+          "id": 53,
+          "joker": "small"
+        },
+        {
+          "id": 80,
+          "suit": "club",
+          "rank": "2"
+        },
+        {
+          "id": 18,
+          "suit": "heart",
+          "rank": "7"
+        },
+        {
+          "id": 6,
+          "suit": "spade",
+          "rank": "8"
+        },
+        {
+          "id": 89,
+          "suit": "club",
+          "rank": "J"
+        },
+        {
+          "id": 45,
+          "suit": "diamond",
+          "rank": "8"
+        },
+        {
+          "id": 142,
+          "suit": "club",
+          "rank": "10"
+        },
+        {
+          "id": 153,
+          "suit": "diamond",
+          "rank": "8"
+        },
+        {
+          "id": 1,
+          "suit": "spade",
+          "rank": "3"
+        },
+        {
+          "id": 134,
+          "suit": "club",
+          "rank": "2"
+        },
+        {
+          "id": 8,
+          "suit": "spade",
+          "rank": "10"
+        },
+        {
+          "id": 87,
+          "suit": "club",
+          "rank": "9"
+        },
+        {
+          "id": 131,
+          "suit": "heart",
+          "rank": "Q"
+        },
+        {
+          "id": 102,
+          "suit": "diamond",
+          "rank": "J"
+        },
+        {
+          "id": 72,
+          "suit": "heart",
+          "rank": "7"
+        },
+        {
+          "id": 130,
+          "suit": "heart",
+          "rank": "J"
+        },
+        {
+          "id": 116,
+          "suit": "spade",
+          "rank": "10"
+        },
+        {
+          "id": 94,
+          "suit": "diamond",
+          "rank": "3"
+        },
+        {
+          "id": 84,
+          "suit": "club",
+          "rank": "6"
+        },
+        {
+          "id": 29,
+          "suit": "club",
+          "rank": "5"
+        },
+        {
+          "id": 73,
+          "suit": "heart",
+          "rank": "8"
+        },
+        {
+          "id": 78,
+          "suit": "heart",
+          "rank": "K"
+        },
+        {
+          "id": 127,
+          "suit": "heart",
+          "rank": "8"
+        }
+      ],
+      "north": [
+        {
+          "id": 49,
+          "suit": "diamond",
+          "rank": "Q"
+        },
+        {
+          "id": 147,
+          "suit": "diamond",
+          "rank": "2"
+        },
+        {
+          "id": 135,
+          "suit": "club",
+          "rank": "3"
+        },
+        {
+          "id": 161,
+          "joker": "small"
+        },
+        {
+          "id": 81,
+          "suit": "club",
+          "rank": "3"
+        },
+        {
+          "id": 129,
+          "suit": "heart",
+          "rank": "10"
+        },
+        {
+          "id": 98,
+          "suit": "diamond",
+          "rank": "7"
+        },
+        {
+          "id": 43,
+          "suit": "diamond",
+          "rank": "6"
+        },
+        {
+          "id": 79,
+          "suit": "heart",
+          "rank": "A"
+        },
+        {
+          "id": 4,
+          "suit": "spade",
+          "rank": "6"
+        },
+        {
+          "id": 125,
+          "suit": "heart",
+          "rank": "6"
+        },
+        {
+          "id": 25,
+          "suit": "heart",
+          "rank": "A"
+        },
+        {
+          "id": 59,
+          "suit": "spade",
+          "rank": "7"
+        },
+        {
+          "id": 42,
+          "suit": "diamond",
+          "rank": "5"
+        },
+        {
+          "id": 93,
+          "suit": "diamond",
+          "rank": "2"
+        },
+        {
+          "id": 100,
+          "suit": "diamond",
+          "rank": "9"
+        },
+        {
+          "id": 63,
+          "suit": "spade",
+          "rank": "J"
+        },
+        {
+          "id": 126,
+          "suit": "heart",
+          "rank": "7"
+        },
+        {
+          "id": 160,
+          "joker": "big"
+        },
+        {
+          "id": 144,
+          "suit": "club",
+          "rank": "Q"
+        },
+        {
+          "id": 99,
+          "suit": "diamond",
+          "rank": "8"
+        },
+        {
+          "id": 101,
+          "suit": "diamond",
+          "rank": "10"
+        },
+        {
+          "id": 114,
+          "suit": "spade",
+          "rank": "8"
+        },
+        {
+          "id": 46,
+          "suit": "diamond",
+          "rank": "9"
+        },
+        {
+          "id": 64,
+          "suit": "spade",
+          "rank": "Q"
+        },
+        {
+          "id": 159,
+          "suit": "diamond",
+          "rank": "A"
+        },
+        {
+          "id": 152,
+          "suit": "diamond",
+          "rank": "7"
+        },
+        {
+          "id": 107,
+          "joker": "small"
+        },
+        {
+          "id": 24,
+          "suit": "heart",
+          "rank": "K"
+        },
+        {
+          "id": 119,
+          "suit": "spade",
+          "rank": "K"
+        },
+        {
+          "id": 55,
+          "suit": "spade",
+          "rank": "3"
+        },
+        {
+          "id": 97,
+          "suit": "diamond",
+          "rank": "6"
+        },
+        {
+          "id": 44,
+          "suit": "diamond",
+          "rank": "7"
+        }
+      ],
+      "west": [
+        {
+          "id": 90,
+          "suit": "club",
+          "rank": "Q"
+        },
+        {
+          "id": 60,
+          "suit": "spade",
+          "rank": "8"
+        },
+        {
+          "id": 54,
+          "suit": "spade",
+          "rank": "2"
+        },
+        {
+          "id": 28,
+          "suit": "club",
+          "rank": "4"
+        },
+        {
+          "id": 52,
+          "joker": "big"
+        },
+        {
+          "id": 20,
+          "suit": "heart",
+          "rank": "9"
+        },
+        {
+          "id": 74,
+          "suit": "heart",
+          "rank": "9"
+        },
+        {
+          "id": 40,
+          "suit": "diamond",
+          "rank": "3"
+        },
+        {
+          "id": 67,
+          "suit": "heart",
+          "rank": "2"
+        },
+        {
+          "id": 69,
+          "suit": "heart",
+          "rank": "4"
+        },
+        {
+          "id": 62,
+          "suit": "spade",
+          "rank": "10"
+        },
+        {
+          "id": 21,
+          "suit": "heart",
+          "rank": "10"
+        },
+        {
+          "id": 13,
+          "suit": "heart",
+          "rank": "2"
+        },
+        {
+          "id": 132,
+          "suit": "heart",
+          "rank": "K"
+        },
+        {
+          "id": 115,
+          "suit": "spade",
+          "rank": "9"
+        },
+        {
+          "id": 70,
+          "suit": "heart",
+          "rank": "5"
+        },
+        {
+          "id": 136,
+          "suit": "club",
+          "rank": "4"
+        },
+        {
+          "id": 150,
+          "suit": "diamond",
+          "rank": "5"
+        },
+        {
+          "id": 71,
+          "suit": "heart",
+          "rank": "6"
+        },
+        {
+          "id": 38,
+          "suit": "club",
+          "rank": "A"
+        },
+        {
+          "id": 120,
+          "suit": "spade",
+          "rank": "A"
+        },
+        {
+          "id": 103,
+          "suit": "diamond",
+          "rank": "Q"
+        },
+        {
+          "id": 17,
+          "suit": "heart",
+          "rank": "6"
+        },
+        {
+          "id": 149,
+          "suit": "diamond",
+          "rank": "4"
+        },
+        {
+          "id": 88,
+          "suit": "club",
+          "rank": "10"
+        },
+        {
+          "id": 83,
+          "suit": "club",
+          "rank": "5"
+        },
+        {
+          "id": 15,
+          "suit": "heart",
+          "rank": "4"
+        },
+        {
+          "id": 106,
+          "joker": "big"
+        },
+        {
+          "id": 143,
+          "suit": "club",
+          "rank": "J"
+        },
+        {
+          "id": 118,
+          "suit": "spade",
+          "rank": "Q"
+        }
+      ],
+      "south": [
+        {
+          "id": 14,
+          "suit": "heart",
+          "rank": "3"
+        },
+        {
+          "id": 117,
+          "suit": "spade",
+          "rank": "J"
+        },
+        {
+          "id": 27,
+          "suit": "club",
+          "rank": "3"
+        },
+        {
+          "id": 3,
+          "suit": "spade",
+          "rank": "5"
+        },
+        {
+          "id": 7,
+          "suit": "spade",
+          "rank": "9"
+        },
+        {
+          "id": 77,
+          "suit": "heart",
+          "rank": "Q"
+        },
+        {
+          "id": 16,
+          "suit": "heart",
+          "rank": "5"
+        },
+        {
+          "id": 122,
+          "suit": "heart",
+          "rank": "3"
+        },
+        {
+          "id": 47,
+          "suit": "diamond",
+          "rank": "10"
+        },
+        {
+          "id": 68,
+          "suit": "heart",
+          "rank": "3"
+        },
+        {
+          "id": 128,
+          "suit": "heart",
+          "rank": "9"
+        },
+        {
+          "id": 5,
+          "suit": "spade",
+          "rank": "7"
+        },
+        {
+          "id": 51,
+          "suit": "diamond",
+          "rank": "A"
+        },
+        {
+          "id": 133,
+          "suit": "heart",
+          "rank": "A"
+        },
+        {
+          "id": 95,
+          "suit": "diamond",
+          "rank": "4"
+        },
+        {
+          "id": 112,
+          "suit": "spade",
+          "rank": "6"
+        },
+        {
+          "id": 76,
+          "suit": "heart",
+          "rank": "J"
+        },
+        {
+          "id": 23,
+          "suit": "heart",
+          "rank": "Q"
+        },
+        {
+          "id": 48,
+          "suit": "diamond",
+          "rank": "J"
+        },
+        {
+          "id": 155,
+          "suit": "diamond",
+          "rank": "10"
+        },
+        {
+          "id": 9,
+          "suit": "spade",
+          "rank": "J"
+        },
+        {
+          "id": 154,
+          "suit": "diamond",
+          "rank": "9"
+        },
+        {
+          "id": 105,
+          "suit": "diamond",
+          "rank": "A"
+        },
+        {
+          "id": 157,
+          "suit": "diamond",
+          "rank": "Q"
+        },
+        {
+          "id": 75,
+          "suit": "heart",
+          "rank": "10"
+        },
+        {
+          "id": 58,
+          "suit": "spade",
+          "rank": "6"
+        },
+        {
+          "id": 111,
+          "suit": "spade",
+          "rank": "5"
+        },
+        {
+          "id": 124,
+          "suit": "heart",
+          "rank": "5"
+        },
+        {
+          "id": 41,
+          "suit": "diamond",
+          "rank": "4"
+        },
+        {
+          "id": 123,
+          "suit": "heart",
+          "rank": "4"
+        },
+        {
+          "id": 96,
+          "suit": "diamond",
+          "rank": "5"
+        },
+        {
+          "id": 2,
+          "suit": "spade",
+          "rank": "4"
+        },
+        {
+          "id": 121,
+          "suit": "heart",
+          "rank": "2"
+        }
+      ]
+    },
+    "kitty": [
+      {
+        "id": 138,
+        "suit": "club",
+        "rank": "6"
+      },
+      {
+        "id": 82,
+        "suit": "club",
+        "rank": "4"
+      },
+      {
+        "id": 37,
+        "suit": "club",
+        "rank": "K"
+      },
+      {
+        "id": 34,
+        "suit": "club",
+        "rank": "10"
+      },
+      {
+        "id": 26,
+        "suit": "club",
+        "rank": "2"
+      },
+      {
+        "id": 137,
+        "suit": "club",
+        "rank": "5"
+      }
+    ],
+    "trumpState": {
+      "phase": "kitty",
+      "currentTrump": {
+        "suit": "heart",
+        "priority": 3,
+        "cards": [
+          {
+            "id": 14,
+            "suit": "heart",
+            "rank": "3"
+          },
+          {
+            "id": 122,
+            "suit": "heart",
+            "rank": "3"
+          },
+          {
+            "id": 68,
+            "suit": "heart",
+            "rank": "3"
+          }
+        ],
+        "declarer": "south",
+        "level": "3"
+      },
+      "kittyHolder": "south",
+      "declarations": [
+        {
+          "suit": "club",
+          "priority": 7,
+          "cards": [
+            {
+              "id": 135,
+              "suit": "club",
+              "rank": "3"
+            }
+          ],
+          "declarer": "north",
+          "level": "3"
+        },
+        {
+          "suit": "heart",
+          "priority": 6,
+          "cards": [
+            {
+              "id": 14,
+              "suit": "heart",
+              "rank": "3"
+            },
+            {
+              "id": 122,
+              "suit": "heart",
+              "rank": "3"
+            }
+          ],
+          "declarer": "south",
+          "level": "3"
+        },
+        {
+          "suit": null,
+          "priority": 5,
+          "cards": [
+            {
+              "id": 161,
+              "joker": "small"
+            },
+            {
+              "id": 107,
+              "joker": "small"
+            }
+          ],
+          "declarer": "north",
+          "level": "3"
+        },
+        {
+          "suit": null,
+          "priority": 4,
+          "cards": [
+            {
+              "id": 52,
+              "joker": "big"
+            },
+            {
+              "id": 106,
+              "joker": "big"
+            }
+          ],
+          "declarer": "west",
+          "level": "3"
+        },
+        {
+          "suit": "heart",
+          "priority": 3,
+          "cards": [
+            {
+              "id": 14,
+              "suit": "heart",
+              "rank": "3"
+            },
+            {
+              "id": 122,
+              "suit": "heart",
+              "rank": "3"
+            },
+            {
+              "id": 68,
+              "suit": "heart",
+              "rank": "3"
+            }
+          ],
+          "declarer": "south",
+          "level": "3"
+        }
+      ],
+      "isGrabMode": false
+    },
+    "ctx": {
+      "level": "3",
+      "trumpSuit": "heart"
+    },
+    "scores": {
+      "east": 0,
+      "north": 0,
+      "west": 0,
+      "south": 0
+    },
+    "roundNumber": 0,
+    "currentLeader": "east",
+    "lastTrick": [],
+    "lastWinner": null,
+    "isOver": false,
+    "winner": null
+  },
+  "savedAt": "2026-03-09T18:45:04.376Z"
+}
