@@ -1,19 +1,16 @@
 {
   "name": "tractor",
-  "module": "index.ts",
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun run server.ts",
-    "dev:frontend": "cd frontend && bun run dev",
-    "dev:all": "bun run server.ts & cd frontend && bun run dev",
+    "dev": "bun run web-deal-service.ts",
+    "dev:frontend": "cd webapp && bun run dev",
+    "dev:all": "bun run web-deal-service.ts & cd webapp && bun run dev",
     "test": "bun test",
-    "cli": "bun cli.ts"
+    "build:webapp": "cd webapp && bun run build",
+    "start": "bun run web-deal-service.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
   }
 }
