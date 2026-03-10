@@ -2,6 +2,7 @@
 These are the only files/directories to include in the repo per current preference:
 
 - `WHITELIST.md`
+- `AGENTS.md`
 - `webapp`
 - `webapi`
 - `src`
