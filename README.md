@@ -48,11 +48,15 @@
 ### 本地运行
 
 ```bash
-# 安装依赖
+# 安装依赖（包含前端）
 bun install
+cd webapp && bun install
 
-# 启动Web服务
+# 启动后端 Web 服务
 bun run web-deal-service.ts
+
+# 启动前端（另一个 shell）
+cd webapp && bun run dev
 
 # 浏览器打开 http://localhost:8787
 ```
@@ -67,6 +71,9 @@ bun test
 
 ```
 tractor/
+├── package.json           # 统一 scripts（后端、前端 helper）
+├── web-deal-service.ts    # Bun 入口/后端服务
+├── run-multi-round-logs.ts  # 批量测试脚本
 ├── src/
 │   ├── core/              # 核心逻辑
 │   │   ├── deck.ts        # 牌库与排序
@@ -83,16 +90,16 @@ tractor/
 │   │   └── trump-strategy.ts    # 亮主策略
 │   └── engine/
 │       └── game-loop.ts   # 游戏主循环
-├── webapi/               # Web服务端
-│   ├── routes/           # API路由
+├── webapi/               # Web 服务端
+│   ├── routes/           # API 路由
 │   └── game-logger.ts    # 游戏日志
-├── webapp/               # 前端React应用
+├── webapp/               # React+Vite 前端
+│   ├── package.json       # 前端 dev/build 脚本
 │   └── src/
 │       └── App.tsx       # 主界面
-├── tests/                # 单元测试
+├── tests/                # Bun test 单元测试
 │   └── *.test.ts
-├── web-deal-service.ts   # 服务入口
-└── run-multi-round-logs.ts  # 批量测试脚本
+└── WHITELIST.md          # 记录仓库保留的文件
 ```
 
 ## 技术栈
