@@ -677,9 +677,56 @@ function saveGameLog(session: Session): string | null {
   const state = session.engine.getState();
   const dealer = state.dealer;
   
-  // 保存当前局的级别（在 calculateGameResult 更新之前）
-  const currentTeamLevels = { ...session.teamLevels };
-  session.loggedTeamLevels = currentTeamLevels;
+  // Calculate the CURRENT game's team levels (not the next game's)
+  // session.teamLevels has already been updated to next game's levels by calculateGameResult
+  // So we need to calculate backwards from the game result
+  let currentTeamLevels: { eastWest: Rank; northSouth: Rank };
+  
+  if (session.gameResult) {
+    const nextLevel = session.gameResult.nextLevel;
+    const nextDealer = session.gameResult.nextDealer;
+    const nextDealerTeam = getDealerTeam(nextDealer);
+    
+    // If defender won: the team that is now dealer was the defender (they upgraded)
+    // If dealer won: the team that is now dealer was the dealer (they kept their level)
+    const winner = session.gameResult.winner;
+    
+    if (winner === 'defender') {
+      // Defender won and upgraded - so nextLevel is the defender's new level
+      // The dealer team stayed at their old level
+      if (nextDealerTeam === 'eastWest') {
+        // EastWest is now dealer (they were defender and won)
+        currentTeamLevels = {
+          eastWest: nextLevel,
+          northSouth: session.teamLevels.northSouth  // This stayed the same
+        };
+      } else {
+        // NorthSouth is now dealer (they were defender and won)
+        currentTeamLevels = {
+          eastWest: session.teamLevels.eastWest,  // This stayed the same
+          northSouth: nextLevel
+        };
+      }
+    } else {
+      // Dealer won and kept their level
+      // The dealer team stayed at their level (which is the current level in the log)
+      const currentDealerTeam = getDealerTeam(dealer);
+      if (currentDealerTeam === 'eastWest') {
+        currentTeamLevels = {
+          eastWest: state.level as Rank,
+          northSouth: session.teamLevels.northSouth  // Defender's level may have changed
+        };
+      } else {
+        currentTeamLevels = {
+          eastWest: session.teamLevels.eastWest,  // Defender's level may have changed
+          northSouth: state.level as Rank
+        };
+      }
+    }
+  } else {
+    // Fallback to session.teamLevels if no game result (shouldn't happen in normal flow)
+    currentTeamLevels = { ...session.teamLevels };
+  }
   
   for (const trick of session.tricks) {
     session.logger.recordTrick(trick);
@@ -688,9 +735,9 @@ function saveGameLog(session: Session): string | null {
   session.logger.recordFinalScores(session.scores);
   
   if (session.gameResult) {
-    // 计算底牌原始分数
+    // Calculate底牌原始分数
     const kittyBaseScore = getPointCards(state.kitty);
-    // 计算抠底倍数
+    // Calculate抠底倍数
     const kittyScore = session.gameResult.kittyScore;
     const kittyMultiplier = kittyBaseScore > 0 && kittyScore > 0 
       ? Math.floor(kittyScore / kittyBaseScore) 
@@ -712,10 +759,9 @@ function saveGameLog(session: Session): string | null {
     });
   }
   
-  const teamLevelsForLog = session.loggedTeamLevels || currentTeamLevels;
   const filepath = session.logger.saveLog(
     state.dealer,
-    teamLevelsForLog,
+    currentTeamLevels,  // Use the calculated current levels, not session.teamLevels
     state.ctx
   );
   
