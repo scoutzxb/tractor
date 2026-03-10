@@ -1,34 +1,51 @@
-# dependencies (bun install)
-node_modules
+# Dependencies
+node_modules/
 
-# output
-out
-dist
+# Output
+dist/
+out/
 *.tgz
 
-# code coverage
-coverage
+# Coverage
+coverage/
 *.lcov
 
-# logs
-logs
-_.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+# Logs
+logs/
+*.log
+game-logs*/
+game-server-events.log
 
-# dotenv environment variable files
+# Environment variables
 .env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
+.env.*
 
-# caches
+# Caches
 .eslintcache
 .cache
 *.tsbuildinfo
 
-# IntelliJ based IDEs
-.idea
+# IDE
+.idea/
 
-# Finder (MacOS) folder config
+# macOS
 .DS_Store
+
+# Project-specific noise
+autosaves/
+frontend/
+notebooks/
+regression-runs/
+saves/
+scripts/
+
+# Temporary/test artifacts
+tmp*
+test*
+!tests/
+
+# Database/other temporary
+*.sqlite
+*.db
+
+# Whitelist reminder (do not delete this file)
