@@ -1103,6 +1103,18 @@ async function handleNextGame(req: Request, deps: any): Promise<Response> {
     // Both players are already connected, go directly to dealing
     s.phase = "dealing";
   }
+  
+  // For single-player mode, also transfer the south player from old session
+  if (actualPlayerMode === 'single' && oldSession) {
+    const southPlayer = oldSession.players.get('south');
+    if (southPlayer) {
+      s.players.set('south', {
+        ...southPlayer,
+        connectedAt: new Date(),
+        lastSeen: new Date()
+      });
+    }
+  }
 
   sessions.set(s.id, s);
   
