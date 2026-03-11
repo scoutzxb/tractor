@@ -712,7 +712,7 @@ export function App(){
               {['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'].map(x => <option key={x}>{x}</option>)}
             </select>
             <select value={dealer} onChange={e => setDealer(e.target.value)} className="p-2 border rounded">
-              {['south', 'east', 'north', 'west'].map(x => <option key={x}>{t(lang, x)} ({x})</option>)}
+              {['south', 'east', 'north', 'west'].map(x => <option key={x} value={x}>{t(lang, x)}</option>)}
             </select>
           </div>
           <button onClick={createGame} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">

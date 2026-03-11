@@ -290,7 +290,7 @@ export class GameEngine {
   finalizeTrumpPhase(): void {
     // 如果无人亮主，翻底牌
     if (!this.state.trumpState.currentTrump) {
-      this.state.trumpState = flipKitty(this.state.trumpState, this.state.kitty);
+      this.state.trumpState = flipKitty(this.state.trumpState, this.state.kitty, this.state.level, this.state.dealer);
       this.log('trump', '无人亮主，翻底牌', {
         trump: this.state.trumpState.currentTrump
       });
@@ -346,7 +346,7 @@ export class GameEngine {
     
     // 无人亮主，翻底牌
     if (!hasDeclaration) {
-      this.state.trumpState = flipKitty(this.state.trumpState, this.state.kitty);
+      this.state.trumpState = flipKitty(this.state.trumpState, this.state.kitty, this.state.level, this.state.dealer);
       
       this.log('trump', '无人亮主，翻底牌', {
         trump: this.state.trumpState.currentTrump
