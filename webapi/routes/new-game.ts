@@ -67,7 +67,8 @@ export async function handleNewGame(req: Request, deps: any) {
     gameResult: null as any,
     logger: getLoggerManager("game-logs-web").startNewGame(sessionId),
     dealingCardsLog: [] as any[],
-    players: new Map(), // Initialize empty players map for remote multiplayer
+    players: new Map(),
+    createdAt: Date.now(),
   };
 
   s.logger.setGrabMode(isGrabMode);

@@ -12,6 +12,17 @@ export async function handleJoinGame(req: Request, deps: any) {
     return json({ error: "Invalid seat. Must be 'north' or 'south'" }, 400);
   }
   
+  // Clean up old sessions for this player
+  for (const [oldSessionId, oldSession] of sessions) {
+    for (const [seat, player] of oldSession.players) {
+      if (player.name === playerName && oldSessionId !== sessionId) {
+        console.log(`[cleanup] Deleting old session ${oldSessionId} for player "${playerName}"`);
+        sessions.delete(oldSessionId);
+        break;
+      }
+    }
+  }
+  
   // Get session
   const session = sessions.get(sessionId);
   if (!session) {
@@ -48,16 +59,16 @@ export async function handleJoinGame(req: Request, deps: any) {
   
   console.log(`Player "${playerName}" joined as ${desiredSeat} in session ${sessionId}`);
   
-  // Return player info and game state (filtered for their seat)
+  // Return player info and game state
   return json({
     playerToken: token,
     playerSeat: desiredSeat,
     playerName,
     sessionId,
     gamePhase: session.phase,
-    playerMode: session.playerMode, // Tell frontend the game mode
+    playerMode: session.playerMode,
     connectedPlayers: [...session.players.keys()],
     waitingFor: validSeats.filter(s => !session.players.has(s)),
-    state: summarize(session, desiredSeat) // Seat-specific state
+    state: summarize(session, desiredSeat)
   });
 }

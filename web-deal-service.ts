@@ -52,18 +52,6 @@ const seats: Seat[] = ["east", "north", "west", "south"];
 // Types
 // ============================================================================
 
-type DeclareOption = {
-  key: string;
-  label: string;
-  cards: Card[];
-};
-
-type ChaoDiOption = {
-  key: string;
-  label: string;
-  cards: Card[];
-};
-
 export type Session = {
   id: string;
   engine: GameEngine;
@@ -71,7 +59,7 @@ export type Session = {
   round: number;
   done: boolean;
   phase: "waiting" | "dealing" | "postDeal" | "kitty" | "chaodi" | "play" | "done";
-  postDealStartTime?: number;  // 发牌后等待开始时间（毫秒）
+  postDealStartTime?: number;
   awaitingDiscard: boolean;
   pendingChaodiSettle: boolean;
   mode: "grab" | "normal";
@@ -94,7 +82,7 @@ export type Session = {
     plays: Array<{ seat: Seat; cards: Card[] }>;
     winner: Seat;
     points: number;
-    resolvedStructure?: any[];  // 用于甩牌时计算抠底倍数
+    resolvedStructure?: any[];
   }>;
   waitingNextRound: boolean;
   lastRoundReview: {
@@ -133,6 +121,12 @@ export type Session = {
     connectedAt: Date;
     lastSeen: Date;
   }>;
+  
+  // Session creation time for determining which is newer
+  createdAt: number;
+  
+  // Periodic autosave tracking
+  lastAutosaveTime?: number;
 };
 
 // Generate a simple token for player authentication
@@ -160,6 +154,31 @@ export function json(data: unknown, status = 200): Response {
       "access-control-allow-headers": "content-type",
     },
   });
+}
+
+// ============================================================================
+// Periodic Autosave
+// ============================================================================
+
+const AUTOSAVE_INTERVAL_MS = 60000; // 60 seconds
+
+function checkPeriodicAutosave() {
+  const now = Date.now();
+
+  // Iterate through sessions and autosave if enough time has passed
+  for (const [sessionId, session] of sessions) {
+    // Only autosave if this session has players
+    if (session.players.size === 0) continue;
+    
+    // Check if enough time has passed
+    const lastTime = session.lastAutosaveTime || 0;
+    if (now - lastTime < AUTOSAVE_INTERVAL_MS) continue;
+    
+    // Autosave this session
+    autoSaveForAllPlayers(session);
+    session.lastAutosaveTime = now;
+    console.log(`[autosave] Periodic autosave for session ${sessionId} (${session.phase} phase)`);
+  }
 }
 
 // ============================================================================
@@ -1064,6 +1083,7 @@ async function handleNextGame(req: Request, deps: any): Promise<Response> {
     logger: getLoggerManager("game-logs-web").startNewGame(newSessionId),
     dealingCardsLog: [],
     players: new Map(), // Will be populated below for two-player mode
+    createdAt: Date.now(),
   };
 
   s.logger.setGrabMode(isGrabMode);
@@ -1086,10 +1106,11 @@ async function handleNextGame(req: Request, deps: any): Promise<Response> {
 
   sessions.set(s.id, s);
   
+  // Delete old session to prevent duplicate autosaves
   if (oldSession) {
     sessions.delete(sessionId);
   }
-
+  
   return json(summarize(s, playerSeat));
 }
 
@@ -1352,6 +1373,9 @@ async function handleDiscardNorth(req: Request, deps: any): Promise<Response> {
 
 async function handleRequest(req: Request): Promise<Response> {
   const url = new URL(req.url);
+
+  // Check for periodic autosave on every request
+  checkPeriodicAutosave();
 
   if (req.method === "OPTIONS") {
     return json({ ok: true });

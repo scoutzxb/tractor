@@ -1,4 +1,5 @@
 import type { Card, Seat } from "../../src/core/types";
+import { autoSaveForAllPlayers } from "../autosave";
 
 export async function handleTick(req: Request, deps: any) {
   const { sessions, declarationOrder, summarize, SUIT_NAMES } = deps;
@@ -61,6 +62,9 @@ export async function handleTick(req: Request, deps: any) {
   deps.serverLog?.("dealing_tick", { sessionId, round: s.round, declarations: declLogs.length });
 
   if (s.round >= 39) {
+    // Dealing finished - autosave before entering postDeal
+    autoSaveForAllPlayers(s);
+    
     // 发牌结束，进入postDeal等待阶段（允许补亮）
     s.phase = "postDeal";
     s.postDealStartTime = Date.now();

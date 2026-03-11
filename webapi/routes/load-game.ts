@@ -2,8 +2,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { deserializeSession } from '../session-utils';
 import type { Seat } from '../../src/core/types';
+import { readPlayerAutosave } from '../autosave';
 
 const SAVES_DIR = path.join(process.cwd(), 'saves');
+const AUTOSAVES_DIR = path.join(process.cwd(), 'autosaves');
 
 export async function handleLoadGame(req: Request, deps: any) {
   const { sessions, json, summarize } = deps;
@@ -64,40 +66,81 @@ export async function handleQuickLoad(req: Request, deps: any) {
   const { sessions, json, summarize } = deps;
   const { desiredSeat } = await req.json();
   
-  if (!fs.existsSync(SAVES_DIR)) {
-    return json({ error: 'No saves found' }, 404);
-  }
+  const candidates: Array<{ type: 'manual' | 'autosave'; filepath: string; mtime: Date; playerName?: string; playerMode?: 'single' | 'two' }> = [];
   
-  const files = fs.readdirSync(SAVES_DIR)
-    .filter(f => f.endsWith('.json'))
-    .map(f => {
+  // Check manual saves
+  if (fs.existsSync(SAVES_DIR)) {
+    const files = fs.readdirSync(SAVES_DIR).filter(f => f.endsWith('.json'));
+    for (const f of files) {
       const filepath = path.join(SAVES_DIR, f);
       try {
         const stat = fs.statSync(filepath);
-        return { filename: f, mtime: stat.mtime };
+        candidates.push({ type: 'manual', filepath, mtime: stat.mtime });
       } catch {
-        return null;
+        // ignore
       }
-    })
-    .filter(Boolean)
-    .sort((a: any, b: any) => b.mtime.getTime() - a.mtime.getTime());
+    }
+  }
   
-  if (files.length === 0) {
+  // Check autosaves - look for all player directories
+  if (fs.existsSync(AUTOSAVES_DIR)) {
+    const playerDirs = fs.readdirSync(AUTOSAVES_DIR).filter(d => {
+      const fullPath = path.join(AUTOSAVES_DIR, d);
+      return fs.statSync(fullPath).isDirectory();
+    });
+    
+    for (const playerDir of playerDirs) {
+      for (const mode of ['single', 'two'] as const) {
+        const filepath = path.join(AUTOSAVES_DIR, playerDir, `${mode}.json`);
+        if (fs.existsSync(filepath)) {
+          try {
+            const stat = fs.statSync(filepath);
+            candidates.push({ 
+              type: 'autosave', 
+              filepath, 
+              mtime: stat.mtime,
+              playerName: playerDir,
+              playerMode: mode
+            });
+          } catch {
+            // ignore
+          }
+        }
+      }
+    }
+  }
+  
+  if (candidates.length === 0) {
     return json({ error: 'No saves found' }, 404);
   }
   
-  // Load the most recent save
-  const latest = files[0] as { filename: string };
-  const filepath = path.join(SAVES_DIR, latest.filename);
+  // Sort by mtime descending and pick the most recent
+  candidates.sort((a: any, b: any) => b.mtime.getTime() - a.mtime.getTime());
+  const latest = candidates[0];
   
   try {
-    const content = JSON.parse(fs.readFileSync(filepath, 'utf-8'));
-    const session = deserializeSession(content, deps);
+    let content: any;
+    let session: any;
+    
+    if (latest.type === 'autosave') {
+      // Load autosave format (has metadata wrapper)
+      const payload = JSON.parse(fs.readFileSync(latest.filepath, 'utf-8'));
+      content = payload.session;
+      session = deserializeSession(content, deps);
+    } else {
+      // Load manual save format
+      content = JSON.parse(fs.readFileSync(latest.filepath, 'utf-8'));
+      session = deserializeSession(content, deps);
+    }
     
     const seat = desiredSeat || 'south';
     const savedPlayer = session.players.get(seat);
     
     sessions.set(session.id, session);
+    
+    const message = latest.type === 'autosave' 
+      ? `已恢复自动存档 (${latest.playerName} - ${latest.playerMode})`
+      : `已加载最新存档: ${path.basename(latest.filepath)}`;
     
     return json({
       ok: true,
@@ -105,7 +148,7 @@ export async function handleQuickLoad(req: Request, deps: any) {
       playerToken: savedPlayer?.token || '',
       playerSeat: seat,
       state: summarize(session, seat),
-      message: `已加载最新存档: ${latest.filename}`
+      message
     });
   } catch (error: any) {
     return json({ error: `Failed to load save: ${error.message}` }, 500);
