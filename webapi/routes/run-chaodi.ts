@@ -37,40 +37,32 @@ function executeChaoDi(
   state.trumpState = chaoDi(state.trumpState, playerSeat, chaodiCards, state.level);
   state.ctx = createGameContext(state.level, state.trumpState);
 
-  // Give kitty to player and remove chaodi cards
+  // Give kitty to player (chaodi cards stay in hand - they're just declared, not removed)
   const hand = state.hands.get(playerSeat) || [];
   const newHand = [...hand, ...state.kitty];
 
-  // Remove chaodi cards from hand
-  const chaodiCardIds = new Set(chaodiCards.map((c: any) => c.id));
-  const filteredHand = newHand.filter((c: any) => !chaodiCardIds.has(c.id));
-
   // Auto-discard: keep 39 cards, put rest back as kitty
-  const discardedKitty = filteredHand.slice(39);
-  state.hands.set(playerSeat, filteredHand.slice(0, 39));
+  const discardedKitty = newHand.slice(39);
+  state.hands.set(playerSeat, newHand.slice(0, 39));
   state.kitty = discardedKitty;
-
-  logs.push(`${playerSeat} 炒底成功`);
-  logs.push(`${playerSeat} 自动扣底完成`);
 
   // Record chao-di event to logger
   if (s.logger) {
     s.logger.recordChaoDi(
       playerSeat,
       chaodiCards,
-      true,
+      true, // success
       {
         suit: state.trumpState.currentTrump?.suit || null,
         isNoTrump: !state.trumpState.currentTrump?.suit
       },
-      oldKitty,
-      discardedKitty
+      oldKitty, // received kitty
+      discardedKitty // discarded kitty
     );
   }
 
-  // Continue to next chaodi round
-  s.nextChaodiSeat = getNextSeat(playerSeat);
-  s.chaodiPassCount = 0;
+  logs.push(`${playerSeat} 炒底成功`);
+  logs.push(`${playerSeat} 自动扣底完成`);
 
   return { success: true, logs };
 }
