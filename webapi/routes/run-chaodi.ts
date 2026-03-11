@@ -1,4 +1,4 @@
-import type { Seat } from "../../src/core/types";
+import type { Seat, Card } from "../../src/core/types";
 import { autoSaveForAllPlayers, autoSaveForSeat } from "../autosave";
 
 const SEATS: Seat[] = ["east", "north", "west", "south"];
@@ -16,8 +16,105 @@ function initChaodiPolling(s: any): void {
   s.chaodiPassCount = 0;
 }
 
+// ============================================================================
+// Unified Chaodi Execution - Handles the core logic for ALL players
+// ============================================================================
+
+function executeChaoDi(
+  s: any,
+  playerSeat: Seat,
+  chaodiCards: Card[],
+  deps: any
+): { success: boolean; error?: string; logs?: string[] } {
+  const { chaoDi, createGameContext } = deps;
+  const state = s.engine.getState();
+  const logs: string[] = [];
+
+  // Save old kitty for logging
+  const oldKitty = [...state.kitty];
+
+  // Perform chaodi (update trump state)
+  state.trumpState = chaoDi(state.trumpState, playerSeat, chaodiCards, state.level);
+  state.ctx = createGameContext(state.level, state.trumpState);
+
+  // Give kitty to player and remove chaodi cards
+  const hand = state.hands.get(playerSeat) || [];
+  const newHand = [...hand, ...state.kitty];
+
+  // Remove chaodi cards from hand
+  const chaodiCardIds = new Set(chaodiCards.map((c: any) => c.id));
+  const filteredHand = newHand.filter((c: any) => !chaodiCardIds.has(c.id));
+
+  // Auto-discard: keep 39 cards, put rest back as kitty
+  const discardedKitty = filteredHand.slice(39);
+  state.hands.set(playerSeat, filteredHand.slice(0, 39));
+  state.kitty = discardedKitty;
+
+  logs.push(`${playerSeat} 炒底成功`);
+  logs.push(`${playerSeat} 自动扣底完成`);
+
+  // Record chao-di event to logger
+  if (s.logger) {
+    s.logger.recordChaoDi(
+      playerSeat,
+      chaodiCards,
+      true,
+      {
+        suit: state.trumpState.currentTrump?.suit || null,
+        isNoTrump: !state.trumpState.currentTrump?.suit
+      },
+      oldKitty,
+      discardedKitty
+    );
+  }
+
+  // Continue to next chaodi round
+  s.nextChaodiSeat = getNextSeat(playerSeat);
+  s.chaodiPassCount = 0;
+
+  return { success: true, logs };
+}
+
+// ============================================================================
+// API Handlers
+// ============================================================================
+
+export async function handleChaoDiManual(req: Request, deps: any) {
+  const { sessions, json, summarize, getChaoDiOptions, canChaoDi, chaoDi, createGameContext } = deps;
+  const { sessionId, key, playerSeat } = await req.json();
+  const s = sessions.get(sessionId);
+  if (!s) return json({ error: "session not found" }, 404);
+  if (s.phase !== "chaodi") return json({ error: "not in chaodi phase" }, 400);
+
+  const opts = getChaoDiOptions(s, playerSeat);
+  const target = opts.find((o: any) => o.key === key);
+  if (!target) return json({ error: "option not valid now" }, 400);
+
+  const state = s.engine.getState();
+  if (!canChaoDi(state.trumpState, playerSeat, target.cards, state.level)) {
+    return json({ error: "canChaoDi rejected by engine" }, 400);
+  }
+
+  // Execute chaodi using unified function
+  const result = executeChaoDi(s, playerSeat, target.cards, { chaoDi, createGameContext });
+  if (!result.success) {
+    return json({ error: result.error || "chaodi failed" }, 400);
+  }
+
+  // Update log index
+  s.lastLogIndex = s.engine.getLogs().length;
+
+  // Set phase to kitty for human player to see their new hand
+  s.phase = "kitty";
+  s.awaitingDiscard = false; // Already auto-discarded by unified function
+  s.pendingChaodiSettle = true;
+  autoSaveForSeat(s, playerSeat);
+
+  return json({ ok: true, label: target.label, logs: result.logs, state: summarize(s, playerSeat) });
+}
+
 export async function handleRunChaodi(req: Request, deps: any) {
-  const { sessions, json, summarize, getChaoDiOptions } = deps;
+  const { sessions, json, summarize, getChaoDiOptions, canChaoDi, chaoDi, createGameContext } = deps;
   const { sessionId, playerSeat } = await req.json();
   const s = sessions.get(sessionId);
   if (!s) return json({ error: "session not found" }, 404);
@@ -52,6 +149,7 @@ export async function handleRunChaodi(req: Request, deps: any) {
       continue;
     }
 
+    // Human player: stop and wait for their decision
     if (s.humanSeats.has(currentSeat)) {
       s.nextChaodiSeat = currentSeat;
       autoSaveForSeat(s, currentSeat);
@@ -64,45 +162,28 @@ export async function handleRunChaodi(req: Request, deps: any) {
       });
     }
 
+    // AI player: make decision and execute chaodi
     const aiPlayer = s.engine.getPlayer(currentSeat);
     if (aiPlayer) {
       const hand = state.hands.get(currentSeat) || [];
       const chaodiCards = aiPlayer.chooseChaoDi(hand, state.level, state.trumpState);
 
       if (chaodiCards && chaodiCards.length > 0) {
-        const success = s.engine.tryChaoDi(currentSeat, chaodiCards);
-        if (success) {
-          logs.push(`${currentSeat} 炒底成功`);
-          
-          // AI 炒底：自动扣底
-          if (!s.humanSeats.has(currentSeat)) {
-            const hand = state.hands.get(currentSeat) || [];
-            const chaodiHand = [...hand, ...state.kitty];
-            // 自动扣6张最差的牌
-            const toKeep = chaodiHand.slice(0, 39);
-            const discarded = chaodiHand.slice(39);
-            state.hands.set(currentSeat, toKeep);
-            state.kitty = discarded;
-            logs.push(`${currentSeat} 自动扣底完成`);
-            
-            // 继续下一轮炒底
-            s.nextChaodiSeat = getNextSeat(currentSeat);
-            s.chaodiPassCount = 0;
-            // 不 return，继续 while 循环
-          } else {
-            // 人类玩家炒底：进入 kitty 阶段
-            s.phase = "kitty";
-            s.awaitingDiscard = true;
-            s.nextChaodiSeat = getNextSeat(currentSeat);
-            s.chaodiPassCount = 0;
-            autoSaveForSeat(s, currentSeat);
-            return json({
-              ok: true,
-              logs: [...logs, "请扣底后继续炒底流程"],
-              phase: "kitty",
-              state: summarize(s, playerSeat)
-            });
-          }
+        // Check if can chaodi
+        if (!canChaoDi(state.trumpState, currentSeat, chaodiCards, state.level)) {
+          currentSeat = getNextSeat(currentSeat);
+          processedCount++;
+          continue;
+        }
+
+        // Execute chaodi using unified function
+        const result = executeChaoDi(s, currentSeat, chaodiCards, { chaoDi, createGameContext });
+        if (result.success) {
+          logs.push(...(result.logs || []));
+          // Continue loop - don't return, process next player
+          currentSeat = s.nextChaodiSeat;
+          processedCount = 0; // Reset to process full round
+          continue;
         }
       }
     }
@@ -111,7 +192,7 @@ export async function handleRunChaodi(req: Request, deps: any) {
     processedCount++;
   }
 
-  // 一轮结束，都无人炒底
+  // Round complete - no one chaodi'd, end chaodi phase
   s.currentLeader = state.dealer;
   s.currentTrick = [];
   s.roundNumber = 0;
@@ -129,77 +210,6 @@ export async function handleRunChaodi(req: Request, deps: any) {
     logs: [...logs, "炒底阶段结束，进入出牌阶段"],
     state: summarize(s, playerSeat)
   });
-}
-
-export async function handleChaoDiManual(req: Request, deps: any) {
-  const { sessions, json, summarize, getChaoDiOptions, chaoDi, createGameContext, canChaoDi } = deps;
-  const { sessionId, key, playerSeat } = await req.json();
-  const s = sessions.get(sessionId);
-  if (!s) return json({ error: "session not found" }, 404);
-  if (s.phase !== "chaodi") return json({ error: "not in chaodi phase" }, 400);
-
-  const options = getChaoDiOptions(s, playerSeat);
-  const target = options.find((o: any) => o.key === key);
-  if (!target) return json({ error: "option not valid now" }, 400);
-
-  const state = s.engine.getState();
-  
-  // Validate chaodi is legal
-  if (!canChaoDi(state.trumpState, playerSeat, target.cards, state.level)) {
-    return json({ error: "canChaoDi rejected by engine" }, 400);
-  }
-
-  // Save old kitty for logging
-  const oldKitty = [...state.kitty];
-  
-  // Perform chaodi (update trump state only, don't use tryChaoDi which auto-handles kitty)
-  state.trumpState = chaoDi(state.trumpState, playerSeat, target.cards, state.level);
-  state.ctx = createGameContext(state.level, state.trumpState);
-
-  // Give kitty to player
-  const hand = state.hands.get(playerSeat) || [];
-  const newHand = [...hand, ...state.kitty];
-  
-  // Remove chaodi cards from hand
-  const chaodiCardIds = new Set(target.cards.map((c: any) => c.id));
-  const filteredHand = newHand.filter((c: any) => !chaodiCardIds.has(c.id));
-  
-  // Auto-discard: keep 39 cards, put rest back as kitty
-  const discardedKitty = filteredHand.slice(39);
-  state.hands.set(playerSeat, filteredHand.slice(0, 39));
-  state.kitty = discardedKitty;
-
-  // Record chao-di event to logger
-  if (s.logger) {
-    s.logger.recordChaoDi(
-      playerSeat,
-      target.cards,
-      true, // success
-      {
-        suit: state.trumpState.currentTrump?.suit || null,
-        isNoTrump: !state.trumpState.currentTrump?.suit
-      },
-      oldKitty, // received kitty
-      discardedKitty // discarded kitty
-    );
-  }
-
-  // Fix: update lastLogIndex after successful chaodi
-  s.lastLogIndex = s.engine.getLogs().length;
-
-  s.phase = "kitty";
-  s.awaitingDiscard = true;
-  s.pendingChaodiSettle = true;
-  
-  // Set next chaodi seat for continuing the chain
-  const SEATS = ["east", "north", "west", "south"];
-  const idx = SEATS.indexOf(playerSeat);
-  s.nextChaodiSeat = SEATS[(idx + 1) % 4];
-  s.chaodiPassCount = 0;
-  
-  autoSaveForSeat(s, playerSeat);
-
-  return json({ ok: true, label: target.label, state: summarize(s, playerSeat) });
 }
 
 export async function handleChaoDiPass(req: Request, deps: any) {
@@ -247,10 +257,6 @@ export async function handleChaoDiPass(req: Request, deps: any) {
     message: "已跳过，继续轮询其他玩家",
     state: summarize(s, playerSeat)
   });
-}
-
-export async function handleChaoDiNorth(req: Request, deps: any) {
-  return handleChaoDiManual(req, { ...deps, playerSeat: 'north' });
 }
 
 export async function handleChaoDiPassNorth(req: Request, deps: any) {

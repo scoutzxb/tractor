@@ -33,8 +33,7 @@ import { handleState } from "./webapi/routes/state";
 import { handleDeclareManual } from "./webapi/routes/declare-manual";
 import { handleTakeKitty } from "./webapi/routes/take-kitty";
 import { handleDiscardManual } from "./webapi/routes/discard-manual";
-import { handleRunChaodi, handleChaoDiPass, handleChaoDiPassNorth } from "./webapi/routes/run-chaodi";
-import { handleChaoDiManual } from "./webapi/routes/chao-di-manual";
+import { handleRunChaodi, handleChaoDiManual, handleChaoDiPass, handleChaoDiPassNorth } from "./webapi/routes/run-chaodi";
 import { handleSaveGame, handleListSaves, handleDeleteSave } from "./webapi/routes/save-game";
 import { handleLoadGame, handleQuickLoad } from "./webapi/routes/load-game";
 import { handlePostDealTick } from "./webapi/routes/post-deal-tick";
@@ -1341,78 +1340,6 @@ async function handleDeclareNorth(req: Request, deps: any): Promise<Response> {
 }
 
 // ============================================================================
-// ChaoDi Handlers (for both players)
-// ============================================================================
-
-async function handleChaoDiGeneric(req: Request, deps: any, playerSeat: Seat): Promise<Response> {
-  const { sessions, json, summarize, getChaoDiOptions, chaoDi, createGameContext } = deps;
-  const { sessionId, key } = await req.json();
-  const s = sessions.get(sessionId);
-  if (!s) return json({ error: "session not found" }, 404);
-  if (s.phase !== "chaodi") return json({ error: "not in chaodi phase" }, 400);
-  if (!s.humanSeats.has(playerSeat)) return json({ error: `${playerSeat} is not a human player` }, 400);
-
-  const options = getChaoDiOptions(s, playerSeat);
-  const option = options.find((o: any) => o.key === key);
-  if (!option) return json({ error: "invalid chaodi option" }, 400);
-
-  const state = s.engine.getState();
-  
-  // Save old kitty for logging
-  const oldKitty = [...state.kitty];
-  
-  // Perform chaodi
-  state.trumpState = chaoDi(state.trumpState, playerSeat, option.cards, state.level);
-  state.ctx = createGameContext(state.level, state.trumpState);
-  
-  // Give kitty to player
-  const hand = state.hands.get(playerSeat) || [];
-  const newHand = [...hand, ...state.kitty];
-  
-  // Remove cards used for chaodi
-  const chaodiCardIds = new Set(option.cards.map(c => c.id));
-  const filteredHand = newHand.filter(c => !chaodiCardIds.has(c.id));
-  
-  // Auto-discard: keep 39 cards, put rest back as kitty
-  const discardedKitty = filteredHand.slice(39);
-  state.hands.set(playerSeat, filteredHand.slice(0, 39));
-  state.kitty = discardedKitty;
-  
-  // Record chao-di event to logger
-  if (s.logger) {
-    s.logger.recordChaoDi(
-      playerSeat,
-      option.cards,
-      true, // success
-      {
-        suit: state.trumpState.currentTrump?.suit || null,
-        isNoTrump: !state.trumpState.currentTrump?.suit
-      },
-      oldKitty, // received kitty
-      discardedKitty // discarded kitty
-    );
-  }
-  
-  // Record initial hands after auto-discard
-  if (s.logger && state.ctx) {
-    s.logger.recordInitialHands(state.hands, state.ctx);
-  }
-  
-  s.engine.log && s.engine.log('chaoDi', `${playerSeat} 炒底成功`, {
-    cards: option.cards.map((c: Card) => c.joker ? c.joker : `${c.suit}${c.rank}`),
-    newTrump: state.trumpState.currentTrump,
-  });
-
-  autoSaveForSeat(s, playerSeat);
-
-  return json({ ok: true, label: option.label, state: summarize(s, playerSeat) });
-}
-
-async function handleChaoDiNorth(req: Request, deps: any): Promise<Response> {
-  return handleChaoDiGeneric(req, deps, "north");
-}
-
-// ============================================================================
 // Discard Handlers (for both players)
 // ============================================================================
 
@@ -1530,7 +1457,7 @@ async function handleRequest(req: Request): Promise<Response> {
   
   // North player chaodi
   if (url.pathname === "/api/chao-di-north" && req.method === "POST") {
-    return handleChaoDiNorth(req, deps);
+    return handleChaoDiManual(req, deps);
   }
 
   // South player pass chaodi
