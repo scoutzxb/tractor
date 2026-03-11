@@ -132,7 +132,7 @@ export async function handleRunChaodi(req: Request, deps: any) {
 }
 
 export async function handleChaoDiManual(req: Request, deps: any) {
-  const { sessions, json, summarize, getChaoDiOptions } = deps;
+  const { sessions, json, summarize, getChaoDiOptions, chaoDi, createGameContext, canChaoDi } = deps;
   const { sessionId, key, playerSeat } = await req.json();
   const s = sessions.get(sessionId);
   if (!s) return json({ error: "session not found" }, 404);
@@ -143,38 +143,61 @@ export async function handleChaoDiManual(req: Request, deps: any) {
   if (!target) return json({ error: "option not valid now" }, 400);
 
   const state = s.engine.getState();
-  const oldKitty = [...state.kitty];
-
-  const success = s.engine.tryChaoDi(playerSeat, target.cards);
-  if (!success) {
-    return json({ error: "chaodi failed" }, 400);
+  
+  // Validate chaodi is legal
+  if (!canChaoDi(state.trumpState, playerSeat, target.cards, state.level)) {
+    return json({ error: "canChaoDi rejected by engine" }, 400);
   }
 
-  const playerHand = state.hands.get(playerSeat) || [];
-  state.hands.set(playerSeat, [...playerHand, ...state.kitty]);
-  state.kitty = [];
+  // Save old kitty for logging
+  const oldKitty = [...state.kitty];
+  
+  // Perform chaodi (update trump state only, don't use tryChaoDi which auto-handles kitty)
+  state.trumpState = chaoDi(state.trumpState, playerSeat, target.cards, state.level);
+  state.ctx = createGameContext(state.level, state.trumpState);
 
+  // Give kitty to player
+  const hand = state.hands.get(playerSeat) || [];
+  const newHand = [...hand, ...state.kitty];
+  
+  // Remove chaodi cards from hand
+  const chaodiCardIds = new Set(target.cards.map((c: any) => c.id));
+  const filteredHand = newHand.filter((c: any) => !chaodiCardIds.has(c.id));
+  
+  // Auto-discard: keep 39 cards, put rest back as kitty
+  const discardedKitty = filteredHand.slice(39);
+  state.hands.set(playerSeat, filteredHand.slice(0, 39));
+  state.kitty = discardedKitty;
+
+  // Record chao-di event to logger
   if (s.logger) {
     s.logger.recordChaoDi(
       playerSeat,
       target.cards,
-      true,
+      true, // success
       {
         suit: state.trumpState.currentTrump?.suit || null,
         isNoTrump: !state.trumpState.currentTrump?.suit
       },
-      oldKitty,
-      []
+      oldKitty, // received kitty
+      discardedKitty // discarded kitty
     );
   }
 
+  // Fix: update lastLogIndex after successful chaodi
   s.lastLogIndex = s.engine.getLogs().length;
+
   s.phase = "kitty";
   s.awaitingDiscard = true;
-
+  s.pendingChaodiSettle = true;
+  
+  // Set next chaodi seat for continuing the chain
+  const SEATS = ["east", "north", "west", "south"];
   const idx = SEATS.indexOf(playerSeat);
   s.nextChaodiSeat = SEATS[(idx + 1) % 4];
   s.chaodiPassCount = 0;
+  
+  autoSaveForSeat(s, playerSeat);
 
   return json({ ok: true, label: target.label, state: summarize(s, playerSeat) });
 }

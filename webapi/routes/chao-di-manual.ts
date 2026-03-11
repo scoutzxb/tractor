@@ -19,12 +19,22 @@ export async function handleChaoDiManual(req: Request, deps: any) {
   // Save old kitty for logging
   const oldKitty = [...state.kitty];
   
+  // Perform chaodi (update trump state)
   state.trumpState = chaoDi(state.trumpState, "south", target.cards, state.level);
   state.ctx = createGameContext(state.level, state.trumpState);
 
+  // Give kitty to player and remove chaodi cards
   const southHand = state.hands.get("south") || [];
-  state.hands.set("south", [...southHand, ...state.kitty]);
-  state.kitty = [];
+  const newHand = [...southHand, ...state.kitty];
+  
+  // Remove chaodi cards from hand
+  const chaodiCardIds = new Set(target.cards.map((c: any) => c.id));
+  const filteredHand = newHand.filter((c: any) => !chaodiCardIds.has(c.id));
+  
+  // Auto-discard: keep 39 cards, put rest back as kitty
+  const discardedKitty = filteredHand.slice(39);
+  state.hands.set("south", filteredHand.slice(0, 39));
+  state.kitty = discardedKitty;
 
   // Record chao-di event to logger
   if (s.logger) {
@@ -37,7 +47,7 @@ export async function handleChaoDiManual(req: Request, deps: any) {
         isNoTrump: !state.trumpState.currentTrump?.suit
       },
       oldKitty, // received kitty
-      [] // discarded kitty (will be recorded later in discard phase)
+      discardedKitty // discarded kitty (now properly recorded)
     );
   }
 
