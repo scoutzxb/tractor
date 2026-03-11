@@ -990,6 +990,66 @@ async function handlePlayNorth(req: Request, deps: any): Promise<Response> {
   return handlePlayGeneric(req, deps, "north");
 }
 
+// AI Suggestion Handler - Suggests cards for human players using AI strategy
+async function handleAISuggestion(req: Request, deps: any): Promise<Response> {
+  const { sessions, json, summarize } = deps;
+  const { sessionId, playerSeat } = await req.json();
+  const s = sessions.get(sessionId);
+  if (!s) return json({ error: "session not found" }, 404);
+  if (s.phase !== "play") return json({ error: "not in play phase" }, 400);
+  if (!s.humanSeats.has(playerSeat)) return json({ error: `${playerSeat} is not a human player` }, 400);
+
+  const state = s.engine.getState();
+  
+  if (s.scores.size === 0) {
+    initPlayPhase(s);
+  }
+
+  // Determine whose turn it is
+  let currentTurn: Seat;
+  if (s.currentTrick.length === 0) {
+    currentTurn = s.currentLeader!;
+  } else {
+    currentTurn = nextSeat(s.currentTrick[s.currentTrick.length - 1].seat);
+  }
+
+  if (currentTurn !== playerSeat) {
+    return json({ error: "not your turn", currentTurn }, 400);
+  }
+
+  const hand = state.hands.get(playerSeat) || [];
+  if (hand.length === 0) {
+    return json({ error: "no cards in hand" }, 400);
+  }
+
+  // Use AI strategy to suggest cards
+  let suggestedCards: Card[];
+  
+  if (s.currentTrick.length === 0) {
+    // Leading - use leadCardsStrategy
+    suggestedCards = leadCardsStrategy(hand, state.ctx!);
+  } else {
+    // Following - use followCardsStrategy
+    const leadCards = s.currentTrick[0].cards;
+    const currentPlays = s.currentTrick;
+    suggestedCards = followCardsStrategy(hand, leadCards, currentPlays, playerSeat, state.ctx!);
+  }
+
+  if (suggestedCards.length === 0) {
+    return json({ error: "could not generate suggestion" }, 400);
+  }
+
+  // Return the suggested card IDs
+  const suggestedCardIds = suggestedCards.map(c => c.id);
+  
+  return json({ 
+    ok: true, 
+    suggestedCardIds,
+    suggestedCards: suggestedCards.map(c => cardName(c)).join(" "),
+    state: summarize(s, playerSeat) 
+  });
+}
+
 async function handleNextRound(req: Request, deps: any): Promise<Response> {
   const { sessions, json, summarize } = deps;
   const { sessionId, playerSeat } = await req.json();
@@ -1491,9 +1551,14 @@ async function handleRequest(req: Request): Promise<Response> {
     return handlePlayHuman(req, deps);
   }
   
-  // North player play
+  // North player's card play
   if (url.pathname === "/api/play-north" && req.method === "POST") {
     return handlePlayNorth(req, deps);
+  }
+
+  // AI suggestion for human players
+  if (url.pathname === "/api/ai-suggestion" && req.method === "POST") {
+    return handleAISuggestion(req, deps);
   }
 
   if (url.pathname === "/api/next-round" && req.method === "POST") {

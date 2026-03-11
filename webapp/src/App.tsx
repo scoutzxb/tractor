@@ -456,6 +456,16 @@ export function App(){
     setState(d.state)
   }
 
+  const getAISuggestion = async () => {
+    if (!state) return
+    const d = await post('/api/ai-suggestion', { sessionId, playerSeat })
+    if (d.error) return add(d.error)
+    if (d.suggestedCardIds && d.suggestedCardIds.length > 0) {
+      setSelected(new Set(d.suggestedCardIds.map(String)))
+      add(`AI建议: ${d.suggestedCards}`)
+    }
+  }
+
   const nextGame = async () => {
     if (!sessionId) return
     const nextMode = state?.gameResult?.nextMode ?? mode
@@ -990,13 +1000,21 @@ export function App(){
               })}
             </div>
             {state.phase === 'play' && state.currentTurn === playerSeat && (
-              <button
-                onClick={playHuman}
-                disabled={selected.size === 0 || (leadCount > 0 && selected.size !== requiredCount)}
-                style={{ marginTop: '8px' }}
-              >
-                {t(lang, 'playSelected')}
-              </button>
+              <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={playHuman}
+                  disabled={selected.size === 0 || (leadCount > 0 && selected.size !== requiredCount)}
+                  style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', padding: '4px 12px', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  {t(lang, 'playSelected')}
+                </button>
+                <button
+                  onClick={getAISuggestion}
+                  style={{ backgroundColor: '#8b5cf6', color: 'white', border: 'none', padding: '4px 12px', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  {t(lang, 'aiSuggestion')}
+                </button>
+              </div>
             )}
           </div>
 
