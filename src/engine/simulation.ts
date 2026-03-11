@@ -101,8 +101,15 @@ export function playOutHands(input: SimulationInput): SimulationResult {
 
     const otherHands = order.slice(1).map(s => hands.get(s) || []);
     const leadValidation = validateLeadPlay(leadCards, otherHands as any, ctx);
-    if (!leadValidation.valid && leadValidation.failedComponent) {
-      leadCards = [...leadValidation.failedComponent.cards];
+    
+    if (!leadValidation.valid) {
+      if (leadValidation.failedComponent) {
+        // 甩牌失败：有具体失败的组件，改出该组件
+        leadCards = [...leadValidation.failedComponent.cards];
+      } else {
+        // 内在非法出牌（如混门）：抛出错误，停止模拟
+        throw new Error(`IntrinsicInvalidPlay: round=${round}, seat=${leader}, reason=${leadValidation.reason || '甩牌必须全部是同门牌'}`);
+      }
       throwFailure = {
         seat: leader,
         attemptedCards: attemptedLeadCards,

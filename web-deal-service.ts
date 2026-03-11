@@ -902,12 +902,18 @@ async function handlePlayGeneric(req: Request, deps: any, playerSeat: Seat): Pro
     const otherHands = seats.filter(s => s !== playerSeat).map(s => state.hands.get(s) || []);
     const validation = validateLeadPlay(cards, otherHands as any, state.ctx!);
     
-    if (!validation.valid && validation.failedComponent) {
-      events.push(`甩牌失败: ${validation.reason || '结构被压制'}`);
-      const attemptedCards = [...cards];
-      cards.length = 0;
-      cards.push(...validation.failedComponent.cards);
-      events.push(`${playerSeat}尝试出牌: ${cardNames(attemptedCards)} → 失败，改出: ${cardNames(cards)}`);
+    if (!validation.valid) {
+      if (validation.failedComponent) {
+        // 甩牌失败：有具体失败的组件，改出该组件
+        events.push(`甩牌失败: ${validation.reason || '结构被压制'}`);
+        const attemptedCards = [...cards];
+        cards.length = 0;
+        cards.push(...validation.failedComponent.cards);
+        events.push(`${playerSeat}尝试出牌: ${cardNames(attemptedCards)} → 失败，改出: ${cardNames(cards)}`);
+      } else {
+        // 内在非法出牌（如混门）：直接返回错误，不自动改出
+        return json({ error: "invalid play", reason: validation.reason || "甩牌必须全部是同门牌" }, 400);
+      }
     }
   } else {
     // Following
@@ -1170,8 +1176,21 @@ async function handleAdvancePlay(req: Request, deps: any): Promise<Response> {
     const otherHands = seats.filter(s => s !== currentTurn).map(s => state.hands.get(s) || []);
     const validation = validateLeadPlay(cards, otherHands as any, state.ctx!);
     
-    if (!validation.valid && validation.failedComponent) {
-      cards = [...validation.failedComponent.cards];
+    if (!validation.valid) {
+      // 甩牌失败（包括混门、被压制等情况）
+      const attemptedCards = [...cards];
+      cards.length = 0;
+      
+      if (validation.failedComponent) {
+        // 有具体失败的组件，改出该组件
+        cards.push(...validation.failedComponent.cards);
+        events.push(`甩牌失败: ${validation.reason || '结构被压制'}`);
+      } else {
+        // 没有具体组件（如混门），改出第一张牌
+        cards.push(attemptedCards[0]);
+        events.push(`出牌无效: ${validation.reason || '非法出牌'}，改出单张`);
+      }
+      
       events.push(`${currentTurn} 尝试甩牌: ${cardNames(attemptedCards)} → 失败，改出: ${cardNames(cards)}`);
     }
   } else {

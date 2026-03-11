@@ -326,6 +326,71 @@ describe('M3: 甩牌校验', () => {
       expect(result.failedComponent).toBeDefined();
       expect(result.failedComponent!.type).toBe('tractor');
     });
+
+    // 回归测试：第16局第4轮 South 混门出牌 (♣A ♣J ♣J ♦7) 应该被拦截
+    test('H2: 第16局第4轮South混门出牌应被拦截 - ♣A ♣J ♣J ♦7 非法', () => {
+      // 从日志中提取的上下文
+      // 主花色: 无主, 庄家: 北, 级别: 8
+      const ctx: GameContext = { level: '8', trumpSuit: null };
+
+      // South 的手牌 (从日志中提取的出牌前手牌)
+      // 副牌♣: ♣A, ♣K, ♣K, ♣Q, ♣J, ♣J, ♣5
+      // 副牌♦: ♦A, ♦K, ♦J, ♦7, ♦7, ♦5, ♦3, ♦3, ♦2, ♦2, ♦2
+      const southHand: Card[] = [
+        // ♣门
+        card('club', 'A', 1), card('club', 'K', 2), card('club', 'K', 3),
+        card('club', 'Q', 4), card('club', 'J', 5), card('club', 'J', 6), card('club', '5', 7),
+        // ♦门
+        card('diamond', 'A', 8), card('diamond', 'K', 9), card('diamond', 'J', 10),
+        card('diamond', '7', 11), card('diamond', '7', 12), card('diamond', '5', 13),
+        card('diamond', '3', 14), card('diamond', '3', 15), card('diamond', '2', 16),
+        card('diamond', '2', 17), card('diamond', '2', 18),
+        // 主牌
+        jokerCard('small', 19), card('spade', '8', 20), card('heart', '8', 21),
+        card('heart', '8', 22), card('diamond', '8', 23),
+        // ♠门
+        card('spade', 'K', 24), card('spade', 'J', 25), card('spade', '10', 26),
+        card('spade', '10', 27), card('spade', '6', 28), card('spade', '5', 29),
+        card('spade', '5', 30), card('spade', '2', 31), card('spade', '2', 32),
+        // ♥门
+        card('heart', 'K', 33), card('heart', 'Q', 34), card('heart', 'J', 35),
+        card('heart', '10', 36), card('heart', '5', 37), card('heart', '3', 38),
+        card('heart', '2', 39)
+      ];
+
+      // East 的手牌 (简化版)
+      const eastHand: Card[] = [
+        card('spade', 'K', 101), card('spade', 'Q', 102), card('spade', '10', 103),
+        card('club', '10', 104), card('club', '9', 105), card('club', '7', 106),
+        card('diamond', 'K', 107), card('diamond', '9', 108)
+      ];
+
+      // North 的手牌 (简化版，庄家)
+      const northHand: Card[] = [
+        jokerCard('small', 201), jokerCard('small', 202),
+        card('spade', '8', 203),
+        card('club', 'A', 204), card('club', 'K', 205)
+      ];
+
+      // West 的手牌 (简化版)
+      const westHand: Card[] = [
+        card('spade', 'A', 301), card('spade', 'Q', 302),
+        card('heart', 'K', 303), card('club', 'A', 304)
+      ];
+
+      // South 尝试出的混门牌: ♣A ♣J ♣J ♦7
+      const mixedSuitLead = [
+        card('club', 'A', 1),
+        card('club', 'J', 5),
+        card('club', 'J', 6),
+        card('diamond', '7', 11)
+      ];
+
+      // 这应该返回无效！混门出牌必须被拦截
+      const result = validateLeadPlay(mixedSuitLead, [eastHand, northHand, westHand], ctx);
+      expect(result.valid).toBe(false);
+      expect(result.reason).toContain('同门');
+    });
   });
 });
 
