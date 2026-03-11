@@ -1,4 +1,4 @@
-import type { Card, GameContext, Component, ParseResult, Seat } from './types';
+import type { Card, GameContext, Component, ParseResult, Seat, Suit } from './types';
 import { parseCards, getPlaySuit } from './parser';
 import { classifyCard } from './deck';
 import { validateKill } from './kill-validator';
@@ -7,6 +7,19 @@ const RANK_VALUES: Record<string, number> = {
   '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10,
   'J': 11, 'Q': 12, 'K': 13, 'A': 14
 };
+
+/**
+ * 从一组牌中提取匹配领牌花色的牌（用于无主局或非主牌领牌时的赢牌判定）
+ * 玩家垫牌的牌不应该参与赢牌比较
+ */
+function extractLeadSuitCards(cards: Card[], leadSuit: Suit, ctx: GameContext): Card[] {
+  return cards.filter(card => {
+    const cardClass = classifyCard(card, ctx);
+    // 只保留与领牌花色匹配的副牌
+    if (cardClass === 'trump') return false;
+    return (cardClass as { suit: Suit }).suit === leadSuit;
+  });
+}
 
 function getCardValueForStrategy(card: Card, ctx: GameContext): number {
   if (!card) return -1;
@@ -134,17 +147,41 @@ export function getWinningPlayDetailed(
   const leadSuit = getPlaySuit(leadPlay.cards, ctx);
   const leadStructure = getStructure(parseCards(leadPlay.cards, ctx));
 
-  let candidatePlays: Array<{ seat: Seat; cards: Card[] }>;
-  if (leadSuit !== 'trump') {
-    const legalTrumpKills = plays.filter(play => {
-      if (getPlaySuit(play.cards, ctx) !== 'trump') return false;
+  // 提取各家可用于赢牌判定的牌
+  // 规则：
+  // 1. 领主牌时，只有主牌可以参与比较
+  // 2. 领副牌时，先检查是否有合法杀牌（全主牌且结构匹配），有则只比较杀牌
+  //    没有杀牌时，只有领牌花色的牌可以参与比较（垫牌不参与）
+  let candidatePlays: Array<{ seat: Seat; cards: Card[]; originalCards: Card[] }>;
+  
+  if (leadSuit === 'trump') {
+    // 领主牌：只比较各家出的主牌
+    candidatePlays = plays.map(play => {
+      const trumpCards = play.cards.filter(c => classifyCard(c, ctx) === 'trump');
+      return { seat: play.seat, cards: trumpCards, originalCards: play.cards };
+    }).filter(p => p.cards.length > 0);
+  } else {
+    // 领副牌：先检查是否有杀牌
+    const trumpKills = plays.filter(play => {
+      const allTrump = play.cards.every(c => classifyCard(c, ctx) === 'trump');
+      if (!allTrump) return false;
       return validateKill(leadPlay.cards, play.cards, ctx).valid;
     });
-    candidatePlays = legalTrumpKills.length > 0
-      ? legalTrumpKills
-      : plays.filter(play => getPlaySuit(play.cards, ctx) === leadSuit);
-  } else {
-    candidatePlays = plays.filter(play => getPlaySuit(play.cards, ctx) === 'trump');
+    
+    if (trumpKills.length > 0) {
+      // 有杀牌：只比较杀牌
+      candidatePlays = trumpKills.map(play => ({
+        seat: play.seat,
+        cards: play.cards,
+        originalCards: play.cards
+      }));
+    } else {
+      // 没有杀牌：只比较各家出的领牌花色牌（排除垫牌）
+      candidatePlays = plays.map(play => {
+        const leadSuitCards = extractLeadSuitCards(play.cards, leadSuit as Suit, ctx);
+        return { seat: play.seat, cards: leadSuitCards, originalCards: play.cards };
+      }).filter(p => p.cards.length > 0);
+    }
   }
 
   if (candidatePlays.length === 0) {
@@ -174,12 +211,12 @@ export function getWinningPlayDetailed(
     }
   }
 
-  let resolvedStructure = parseCards(winning.cards, ctx);
-  if (leadSuit !== 'trump' && getPlaySuit(winning.cards, ctx) === 'trump' && validateKill(leadPlay.cards, winning.cards, ctx).valid) {
-    resolvedStructure = projectWinningCardsToLeadStructure(leadPlay.cards, winning.cards, ctx);
+  let resolvedStructure = parseCards(winning.originalCards, ctx);
+  if (leadSuit !== 'trump' && getPlaySuit(winning.originalCards, ctx) === 'trump' && validateKill(leadPlay.cards, winning.originalCards, ctx).valid) {
+    resolvedStructure = projectWinningCardsToLeadStructure(leadPlay.cards, winning.originalCards, ctx);
   }
 
-  return { winner: winning, resolvedStructure };
+  return { winner: { seat: winning.seat, cards: winning.originalCards }, resolvedStructure };
 }
 
 export function getWinningPlay(
