@@ -415,7 +415,7 @@ export class GameLogger {
           const suitLabel = cd.cards[0].joker
             ? (cd.cards[0].joker === 'big' ? '大王' : '小王')
             : SUIT_NAMES[cd.cards.find(c => !c.joker)?.suit!];
-          lines.push(`  🔥 ${SEAT_NAMES[cd.seat]} 炒底成功: ${cardsLabel}${suitLabel}`);
+          lines.push(`  🔥 ${SEAT_NAMES[cd.seat]} 炒底成功: ${cardsLabel}${suitLabel} (${formatCards(cd.cards)})`);
           if (cd.newTrump) {
             lines.push(`  新主花色: ${cd.newTrump.isNoTrump ? '无主' : SUIT_NAMES[cd.newTrump.suit!]}`);
           }

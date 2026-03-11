@@ -422,7 +422,7 @@ export class GameEngine {
           // 更新GameContext
           this.state.ctx = createGameContext(this.state.level, this.state.trumpState);
           
-          this.log('chaoDi', `${seat} 炒底成功: ${cards.length === 1 ? '单张' : cards.length === 2 ? '一对' : cards.length === 3 ? '三张' : `${cards.length}张`}${cards.every(c => c.joker === 'big') ? '大王' : cards.every(c => c.joker === 'small') ? '小王' : cards[0].suit ? SUIT_NAMES[cards[0].suit] : '无主'}`, {
+          this.log('chaoDi', `${seat} 炒底成功: ${cards.length === 1 ? '单张' : cards.length === 2 ? '一对' : cards.length === 3 ? '三张' : `${cards.length}张`}${cards.every(c => c.joker === 'big') ? '大王' : cards.every(c => c.joker === 'small') ? '小王' : cards[0].suit ? SUIT_NAMES[cards[0].suit] : '无主'} (${cards.map(c => c.joker ? (c.joker === 'big' ? '大王' : '小王') : `${SUIT_NAMES[c.suit!]}${c.rank}`).join(' ')})`, {
             cards: cards.map(c => c.joker ? c.joker : `${c.suit}${c.rank}`),
             newTrump: this.state.trumpState.currentTrump,
             receivedKitty: receivedKitty.map(c => c.joker ? c.joker : `${c.suit}${c.rank}`),
@@ -462,7 +462,9 @@ export class GameEngine {
     this.state.kitty = [];
     
     // 记录日志
-    this.log('chaoDi', `${seat} 炒底成功`, {
+    const cardsLabel = cards.length === 1 ? '单张' : cards.length === 2 ? '一对' : cards.length === 3 ? '三张' : `${cards.length}张`;
+    const suitLabel = cards.every(c => c.joker === 'big') ? '大王' : cards.every(c => c.joker === 'small') ? '小王' : cards[0].suit ? SUIT_NAMES[cards[0].suit] : '无主';
+    this.log('chaoDi', `${seat} 炒底成功: ${cardsLabel}${suitLabel} (${cards.map(c => c.joker ? (c.joker === 'big' ? '大王' : '小王') : `${SUIT_NAMES[c.suit!]}${c.rank}`).join(' ')})`, {
       cards: cards.map(c => c.joker ? c.joker : `${c.suit}${c.rank}`),
       newTrump: this.state.trumpState.currentTrump,
     });
@@ -675,7 +677,7 @@ export class GameEngine {
     
     if (kills.length === 0) {
       // 没人杀牌，首家或同门最大的牌胜
-      const leadParsed = parseCards(leadCards, this.state.ctx);
+      const leadParsed = parseCards(leadCards, this.state.ctx!);
       const leadSuit = leadCards[0].suit;
       
       let winner = allPlays[0];
@@ -718,7 +720,7 @@ export class GameEngine {
                 }
               });
               
-              if (cardCompare(maxInPlay, maxInWinner, this.state.ctx) > 0) {
+              if (cardCompare(maxInPlay, maxInWinner, this.state.ctx!) > 0) {
                 winner = play;
               }
             } catch {
@@ -738,7 +740,7 @@ export class GameEngine {
     }
     
     // 多人杀牌，比较大小
-    const leadParsed = parseCards(leadCards, this.state.ctx);
+    const leadParsed = parseCards(leadCards, this.state.ctx!);
     
     let winner = kills[0];
     for (let i = 1; i < kills.length; i++) {
@@ -746,7 +748,7 @@ export class GameEngine {
         leadCards,
         { cards: winner.cards, seat: winner.seat },
         { cards: kills[i].cards, seat: kills[i].seat },
-        this.state.ctx
+        this.state.ctx!
       );
       
       if (result === kills[i].seat) {
@@ -881,7 +883,7 @@ export class GameEngine {
   }
 
   runTrumpAndKittyFlow(): TrumpKittyPhaseResult {
-    const deck = this.currentDeck || this.prepareDeckFromCurrentStateIfNeeded();
+    const deck = this.currentDeck || this.prepareDeck();
     this.setKitty(deck);
     const kittyAfterDeal = [...this.state.kitty];
 
@@ -918,26 +920,6 @@ export class GameEngine {
       trumpState: this.state.trumpState ? { ...this.state.trumpState } : this.state.trumpState,
       ctx: this.state.ctx ? { ...this.state.ctx } : this.state.ctx
     };
-  }
-
-  private prepareDeckFromCurrentStateIfNeeded(): Card[] {
-    const totalDealt = Array.from(this.state.hands.values()).reduce((s, h) => s + h.length, 0);
-    if (totalDealt === 156) {
-      const deck = new Array<Card>(162);
-      const allSeats: Seat[] = ['east', 'north', 'west', 'south'];
-      const dealerIdx = allSeats.indexOf(this.state.dealer);
-      for (let round = 1; round <= 39; round++) {
-        const startIdx = (round - 1) * 4;
-        for (let i = 0; i < 4; i++) {
-          const seat = allSeats[(dealerIdx + i) % 4];
-          const hand = this.state.hands.get(seat) || [];
-          const card = hand[round - 1];
-          if (card) deck[startIdx + i] = card;
-        }
-      }
-      return deck;
-    }
-    return this.prepareDeck();
   }
   
   // 获取日志

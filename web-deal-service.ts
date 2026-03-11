@@ -33,7 +33,7 @@ import { handleState } from "./webapi/routes/state";
 import { handleDeclareManual } from "./webapi/routes/declare-manual";
 import { handleTakeKitty } from "./webapi/routes/take-kitty";
 import { handleDiscardManual } from "./webapi/routes/discard-manual";
-import { handleRunChaodi, handleChaoDiManual, handleChaoDiPass, handleChaoDiPassNorth } from "./webapi/routes/run-chaodi";
+import { handleRunChaodi, handleChaoDiManual, handleChaoDiPass, handleChaoDiPassNorth, processChaodiPolling } from "./webapi/routes/run-chaodi";
 import { handleSaveGame, handleListSaves, handleDeleteSave } from "./webapi/routes/save-game";
 import { handleLoadGame, handleQuickLoad } from "./webapi/routes/load-game";
 import { handlePostDealTick } from "./webapi/routes/post-deal-tick";
@@ -519,6 +519,7 @@ const deps = {
   getLoggerManager,
   generateToken,
   seats,
+  processChaodiPolling,
 };
 
 // ============================================================================
@@ -1344,7 +1345,7 @@ async function handleDeclareNorth(req: Request, deps: any): Promise<Response> {
 // ============================================================================
 
 async function handleDiscardGeneric(req: Request, deps: any, playerSeat: Seat): Promise<Response> {
-  const { sessions, json, summarize } = deps;
+  const { sessions, json, summarize, getChaoDiOptions, canChaoDi, chaoDi, createGameContext, processChaodiPolling } = deps;
   const { sessionId, cardIds } = await req.json();
   const s = sessions.get(sessionId);
   if (!s) return json({ error: "session not found" }, 404);
@@ -1375,10 +1376,39 @@ async function handleDiscardGeneric(req: Request, deps: any, playerSeat: Seat): 
   
   s.awaitingDiscard = false;
   s.phase = "chaodi";
-
+  
+  // Initialize chaodi polling state
+  const SEATS = ["east", "north", "west", "south"];
+  function getNextSeat(seat: string) {
+    const idx = SEATS.indexOf(seat);
+    return SEATS[(idx + 1) % 4];
+  }
+  s.nextChaodiSeat = getNextSeat(state.trumpState.kittyHolder || state.dealer);
+  s.chaodiRound = 1;
+  s.chaodiPassCount = 0;
+  
+  // Auto-start chaodi polling for AI players
+  const chaodiDeps = { getChaoDiOptions, canChaoDi, chaoDi, createGameContext };
+  const chaodiResult = processChaodiPolling(s, playerSeat, chaodiDeps);
+  
   autoSaveForSeat(s, playerSeat);
-
-  return json({ ok: true, state: summarize(s, playerSeat) });
+  
+  // Return the chaodi polling result
+  if (chaodiResult.type === 'waiting-for-human') {
+    return json({
+      ok: true,
+      logs: chaodiResult.logs,
+      waitingForHuman: true,
+      humanSeat: chaodiResult.humanSeat,
+      state: summarize(s, playerSeat)
+    });
+  } else {
+    return json({
+      ok: true,
+      logs: chaodiResult.logs,
+      state: summarize(s, playerSeat)
+    });
+  }
 }
 
 async function handleDiscardNorth(req: Request, deps: any): Promise<Response> {

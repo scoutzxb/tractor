@@ -1,7 +1,8 @@
 import { autoSaveForSeat } from "../autosave";
+import { processChaodiPolling } from "./run-chaodi";
 
 export async function handleDiscardManual(req: Request, deps: any) {
-  const { sessions, json, summarize } = deps;
+  const { sessions, json, summarize, getChaoDiOptions, canChaoDi, chaoDi, createGameContext } = deps;
   const { sessionId, cardIds, playerSeat } = await req.json();
   const s = sessions.get(sessionId);
   if (!s) return json({ error: "session not found" }, 404);
@@ -68,6 +69,29 @@ export async function handleDiscardManual(req: Request, deps: any) {
     s.nextChaodiSeat = getNextSeat(state.trumpState.kittyHolder || state.dealer);
     s.chaodiRound = 1;
     s.chaodiPassCount = 0;
+    
+    // Auto-start chaodi polling for AI players
+    const chaodiDeps = { getChaoDiOptions, canChaoDi, chaoDi, createGameContext };
+    const chaodiResult = processChaodiPolling(s, playerSeat, chaodiDeps);
+    
+    autoSaveForSeat(s, playerSeat);
+    
+    // Return the chaodi polling result
+    if (chaodiResult.type === 'waiting-for-human') {
+      return json({
+        ok: true,
+        logs: chaodiResult.logs,
+        waitingForHuman: true,
+        humanSeat: chaodiResult.humanSeat,
+        state: summarize(s, playerSeat)
+      });
+    } else {
+      return json({
+        ok: true,
+        logs: chaodiResult.logs,
+        state: summarize(s, playerSeat)
+      });
+    }
   }
 
   autoSaveForSeat(s, playerSeat);

@@ -30,8 +30,8 @@ function executeChaoDi(
   const state = s.engine.getState();
   const logs: string[] = [];
 
-  // Save old kitty for logging
-  const oldKitty = [...state.kitty];
+  // Save old kitty for logging - this captures what the player RECEIVED
+  const receivedKitty = [...state.kitty];
 
   // Perform chaodi (update trump state)
   state.trumpState = chaoDi(state.trumpState, playerSeat, chaodiCards, state.level);
@@ -39,7 +39,7 @@ function executeChaoDi(
 
   // Give kitty to player (chaodi cards stay in hand - they're just declared, not removed)
   const hand = state.hands.get(playerSeat) || [];
-  const newHand = [...hand, ...state.kitty];
+  const newHand = [...hand, ...receivedKitty];
 
   // Auto-discard: keep 39 cards, put rest back as kitty
   const discardedKitty = newHand.slice(39);
@@ -56,8 +56,8 @@ function executeChaoDi(
         suit: state.trumpState.currentTrump?.suit || null,
         isNoTrump: !state.trumpState.currentTrump?.suit
       },
-      oldKitty, // received kitty
-      discardedKitty // discarded kitty
+      receivedKitty, // received kitty (what player got from kitty)
+      discardedKitty // discarded kitty (what player put back)
     );
   }
 
@@ -68,50 +68,16 @@ function executeChaoDi(
 }
 
 // ============================================================================
-// API Handlers
+// Core Chaodi Polling Logic - Extracted for reuse
 // ============================================================================
 
-export async function handleChaoDiManual(req: Request, deps: any) {
-  const { sessions, json, summarize, getChaoDiOptions, canChaoDi, chaoDi, createGameContext } = deps;
-  const { sessionId, key, playerSeat } = await req.json();
-  const s = sessions.get(sessionId);
-  if (!s) return json({ error: "session not found" }, 404);
-  if (s.phase !== "chaodi") return json({ error: "not in chaodi phase" }, 400);
-
-  const opts = getChaoDiOptions(s, playerSeat);
-  const target = opts.find((o: any) => o.key === key);
-  if (!target) return json({ error: "option not valid now" }, 400);
-
-  const state = s.engine.getState();
-  if (!canChaoDi(state.trumpState, playerSeat, target.cards, state.level)) {
-    return json({ error: "canChaoDi rejected by engine" }, 400);
-  }
-
-  // Execute chaodi using unified function
-  const result = executeChaoDi(s, playerSeat, target.cards, { chaoDi, createGameContext });
-  if (!result.success) {
-    return json({ error: result.error || "chaodi failed" }, 400);
-  }
-
-  // Update log index
-  s.lastLogIndex = s.engine.getLogs().length;
-
-  // Set phase to kitty for human player to see their new hand
-  s.phase = "kitty";
-  s.awaitingDiscard = false; // Already auto-discarded by unified function
-  s.pendingChaodiSettle = true;
-  autoSaveForSeat(s, playerSeat);
-
-  return json({ ok: true, label: target.label, logs: result.logs, state: summarize(s, playerSeat) });
-}
-
-export async function handleRunChaodi(req: Request, deps: any) {
-  const { sessions, json, summarize, getChaoDiOptions, canChaoDi, chaoDi, createGameContext } = deps;
-  const { sessionId, playerSeat } = await req.json();
-  const s = sessions.get(sessionId);
-  if (!s) return json({ error: "session not found" }, 404);
-  if (s.phase !== "chaodi") return json({ error: "not in chaodi phase" }, 400);
-
+export function processChaodiPolling(
+  s: any,
+  playerSeat: Seat,
+  deps: any
+): { type: 'waiting-for-human'; humanSeat: Seat; logs: string[] } | { type: 'finished'; logs: string[] } {
+  const { getChaoDiOptions, canChaoDi, chaoDi, createGameContext } = deps;
+  
   if (!s.nextChaodiSeat) {
     initChaodiPolling(s);
   }
@@ -122,18 +88,21 @@ export async function handleRunChaodi(req: Request, deps: any) {
   let processedCount = 0;
 
   while (processedCount < 4) {
+    // Skip the declarer (last person who declared trump cannot chao di)
     if (state.trumpState.currentTrump?.declarer === currentSeat) {
       currentSeat = getNextSeat(currentSeat);
       processedCount++;
       continue;
     }
 
+    // Skip the kitty holder (they already have the kitty)
     if (state.trumpState.kittyHolder === currentSeat) {
       currentSeat = getNextSeat(currentSeat);
       processedCount++;
       continue;
     }
 
+    // Check if this seat has chaodi options
     const options = getChaoDiOptions(s, currentSeat);
     if (options.length === 0) {
       currentSeat = getNextSeat(currentSeat);
@@ -145,13 +114,7 @@ export async function handleRunChaodi(req: Request, deps: any) {
     if (s.humanSeats.has(currentSeat)) {
       s.nextChaodiSeat = currentSeat;
       autoSaveForSeat(s, currentSeat);
-      return json({
-        ok: true,
-        logs,
-        waitingForHuman: true,
-        humanSeat: currentSeat,
-        state: summarize(s, playerSeat)
-      });
+      return { type: 'waiting-for-human', humanSeat: currentSeat, logs };
     }
 
     // AI player: make decision and execute chaodi
@@ -197,11 +160,72 @@ export async function handleRunChaodi(req: Request, deps: any) {
 
   autoSaveForAllPlayers(s);
 
-  return json({
-    ok: true,
-    logs: [...logs, "炒底阶段结束，进入出牌阶段"],
-    state: summarize(s, playerSeat)
-  });
+  logs.push("炒底阶段结束，进入出牌阶段");
+  return { type: 'finished', logs };
+}
+
+// ============================================================================
+// API Handlers
+// ============================================================================
+
+export async function handleChaoDiManual(req: Request, deps: any) {
+  const { sessions, json, summarize, getChaoDiOptions, canChaoDi, chaoDi, createGameContext } = deps;
+  const { sessionId, key, playerSeat } = await req.json();
+  const s = sessions.get(sessionId);
+  if (!s) return json({ error: "session not found" }, 404);
+  if (s.phase !== "chaodi") return json({ error: "not in chaodi phase" }, 400);
+
+  const opts = getChaoDiOptions(s, playerSeat);
+  const target = opts.find((o: any) => o.key === key);
+  if (!target) return json({ error: "option not valid now" }, 400);
+
+  const state = s.engine.getState();
+  if (!canChaoDi(state.trumpState, playerSeat, target.cards, state.level)) {
+    return json({ error: "canChaoDi rejected by engine" }, 400);
+  }
+
+  // Execute chaodi using unified function
+  const result = executeChaoDi(s, playerSeat, target.cards, { chaoDi, createGameContext });
+  if (!result.success) {
+    return json({ error: result.error || "chaodi failed" }, 400);
+  }
+
+  // Update log index
+  s.lastLogIndex = s.engine.getLogs().length;
+
+  // Set phase to kitty for human player to see their new hand
+  s.phase = "kitty";
+  s.awaitingDiscard = false; // Already auto-discarded by unified function
+  s.pendingChaodiSettle = true;
+  autoSaveForSeat(s, playerSeat);
+
+  return json({ ok: true, label: target.label, logs: result.logs, state: summarize(s, playerSeat) });
+}
+
+export async function handleRunChaodi(req: Request, deps: any) {
+  const { sessions, json, summarize } = deps;
+  const { sessionId, playerSeat } = await req.json();
+  const s = sessions.get(sessionId);
+  if (!s) return json({ error: "session not found" }, 404);
+  if (s.phase !== "chaodi") return json({ error: "not in chaodi phase" }, 400);
+
+  const result = processChaodiPolling(s, playerSeat, deps);
+
+  if (result.type === 'waiting-for-human') {
+    return json({
+      ok: true,
+      logs: result.logs,
+      waitingForHuman: true,
+      humanSeat: result.humanSeat,
+      state: summarize(s, playerSeat)
+    });
+  } else {
+    return json({
+      ok: true,
+      logs: result.logs,
+      state: summarize(s, playerSeat)
+    });
+  }
 }
 
 export async function handleChaoDiPass(req: Request, deps: any) {
