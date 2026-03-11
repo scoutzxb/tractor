@@ -817,6 +817,12 @@ export function App(){
         >
           {t(lang, 'loadSave')}
         </button>
+        <button 
+          onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+          className="ml-2 px-2 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
+        >
+          {lang === 'zh' ? 'English' : '中文'}
+        </button>
       </div>
 
       {showKitty && state.kittyHolder === playerSeat && (

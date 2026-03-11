@@ -174,30 +174,27 @@ export const translations = {
     gameFlowStep4: 'Both players can only see their own hands',
     
     // Phase values
-    dealing: '发牌中',
-    postDeal: '补亮阶段',
-    kitty: '扣底阶段',
-    chaodi: '炒底阶段',
-    play: '出牌阶段',
-    done: '结束',
-    waiting: '等待中',
+    dealing: 'Dealing',
+    postDeal: 'Post Deal',
+    kitty: 'Kitty',
+    chaodi: 'Chaodi',
+    play: 'Play',
+    done: 'Done',
+    waiting: 'Waiting',
     
     // Mode values
-    grab: '抢庄',
-    normal: '普通',
+    grab: 'Grab',
+    normal: 'Normal',
     
     // Suit names
-    spade: '♠黑桃',
-    heart: '♥红桃',
-    club: '♣梅花',
-    diamond: '♦方块',
-    noSuit: '无主',
+    spade: '♠Spade',
+    heart: '♥Heart',
+    club: '♣Club',
+    diamond: '♦Diamond',
+    noSuit: 'No Trump',
     
-    // Game    // Phase values
-    
-    // Mode values
-    
-    // Game: 'You are:',
+    // Game
+    youAre: 'You are:',
     southSeat: 'South',
     northSeat: 'North',
     gameId: 'Game ID:',
