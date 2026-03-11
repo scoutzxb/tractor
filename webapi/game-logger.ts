@@ -155,6 +155,11 @@ export class GameLogger {
   } | null = null;
   private isGrabMode: boolean = false;
   private hasRecordedOriginalKitty: boolean = false;  // 是否已记录原始底牌
+  private dealerKitty: {
+    seat: Seat;
+    received: Card[];
+    discarded: Card[];
+  } | null = null;
 
   constructor(gameNumber: number, outputDir: string = "game-logs-web", sessionId?: string) {
     this.gameNumber = gameNumber;
@@ -258,6 +263,11 @@ export class GameLogger {
     };
   }
 
+  // Record dealer's kitty handling (what they received and put back)
+  recordDealerKitty(seat: Seat, received: Card[], discarded: Card[]): void {
+    this.dealerKitty = { seat, received: [...received], discarded: [...discarded] };
+  }
+
   exportState(): GameLoggerState {
     return {
       gameNumber: this.gameNumber,
@@ -279,6 +289,7 @@ export class GameLogger {
             isNoTrump: this.trumpInfo.isNoTrump,
           }
         : null,
+      dealerKitty: this.dealerKitty,
       chaoDiRounds: this.chaoDiRounds.map((cd) => ({
         seat: cd.seat,
         cards: cloneCards(cd.cards),
@@ -329,6 +340,7 @@ export class GameLogger {
           isNoTrump: state.trumpInfo.isNoTrump,
         }
       : null;
+    this.dealerKitty = state.dealerKitty;
     this.chaoDiRounds = state.chaoDiRounds.map((cd) => ({
       seat: cd.seat,
       cards: cloneCards(cd.cards),
@@ -402,6 +414,13 @@ export class GameLogger {
       lines.push(`   庄家: ${SEAT_NAMES[dealer]}\n`);
     } else {
       lines.push(`❌ 无人亮主，翻底牌决定主花色\n`);
+    }
+
+    // Dealer's kitty handling
+    if (this.dealerKitty) {
+      lines.push(`📦 ${SEAT_NAMES[this.dealerKitty.seat]} 拿底扣底:`);
+      lines.push(`   获得底牌: ${formatCards(this.dealerKitty.received)}`);
+      lines.push(`   扣回底牌: ${formatCards(this.dealerKitty.discarded)}\n`);
     }
 
     // ChaoDi phase
@@ -672,6 +691,11 @@ export interface GameLoggerState {
     suit: Suit | null;
     cards: Card[];
     isNoTrump: boolean;
+  } | null;
+  dealerKitty: {
+    seat: Seat;
+    received: Card[];
+    discarded: Card[];
   } | null;
   chaoDiRounds: Array<{
     seat: Seat;

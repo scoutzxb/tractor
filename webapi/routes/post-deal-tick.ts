@@ -61,13 +61,33 @@ export async function handlePostDealTick(req: Request, deps: any) {
     s.awaitingDiscard = true;
   } else {
     // AI holds kitty - auto discard and proceed
+    
+    // Record what dealer received from kitty
+    const stateBeforeDiscard = s.engine.getState();
+    const dealer = stateBeforeDiscard.dealer;
+    const kittyBefore = [...stateBeforeDiscard.kitty];
+    const dealerHandBefore = [...(stateBeforeDiscard.hands.get(dealer) || [])];
+    
     s.engine.discardPhase();
     
     // Record final kitty and initial hands after AI auto-discard
     const stateAfterDiscard = s.engine.getState();
+    
+    // Calculate what dealer received (kitty cards now in hand that weren't there before)
+    const dealerHandAfter = stateAfterDiscard.hands.get(dealer) || [];
+    const receivedKitty = kittyBefore; // The dealer received the entire kitty
+    
+    // Calculate what dealer discarded (cards now in kitty)
+    const discardedKitty = [...stateAfterDiscard.kitty];
+    
+    if (s.logger) {
+      s.logger.recordDealerKitty(dealer, receivedKitty, discardedKitty);
+    }
+    
     if (s.logger && stateAfterDiscard.kitty) {
       s.logger.recordKitty(stateAfterDiscard.kitty);
     }
+    
     if (s.logger && stateAfterDiscard.ctx) {
       s.logger.recordInitialHands(stateAfterDiscard.hands, stateAfterDiscard.ctx);
     }

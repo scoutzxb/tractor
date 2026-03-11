@@ -15,6 +15,9 @@ export async function handleTakeKitty(req: Request, deps: any) {
     return json({ error: "you are not kitty holder" }, 400);
   }
   
+  // Store the kitty cards the dealer is about to receive (for logging later)
+  s.dealerReceivedKitty = [...state.kitty];
+  
   // Add kitty cards to the player's hand
   const myHand = state.hands.get(playerSeat) || [];
   state.hands.set(playerSeat, [...myHand, ...state.kitty]);

@@ -61,6 +61,7 @@ export type Session = {
   postDealStartTime?: number;
   awaitingDiscard: boolean;
   pendingChaodiSettle: boolean;
+  dealerReceivedKitty?: Card[];  // Store kitty cards dealer received (for logging)
   mode: "grab" | "normal";
   isGrabMode: boolean;
   configuredLevel: Rank;

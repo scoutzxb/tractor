@@ -40,6 +40,14 @@ export async function handleDiscardManual(req: Request, deps: any) {
     s.logger.recordKitty(discard);
   }
   
+  // Record dealer's kitty handling
+  if (s.logger) {
+    const receivedKitty = s.dealerReceivedKitty || []; // Cards dealer received from original kitty
+    s.logger.recordDealerKitty(playerSeat, receivedKitty, discard);
+    // Clear the stored value after logging
+    s.dealerReceivedKitty = undefined;
+  }
+  
   // Record initial hands after human player discards
   if (s.logger && state.ctx) {
     s.logger.recordInitialHands(state.hands, state.ctx);
