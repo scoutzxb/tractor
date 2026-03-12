@@ -402,6 +402,7 @@ export function App(){
     const d = await post('/api/take-kitty', { sessionId, playerSeat })
     if (d.error) return add(d.error)
     setSelected(new Set())
+    ;(d.logs || []).forEach((x: string) => add(`Chaodi: ${x}`))
     setState(d.state)
   }
 
@@ -411,6 +412,7 @@ export function App(){
     const d = await post(endpoint, { sessionId, cardIds: [...selected], playerSeat })
     if (d.error) return add(d.error)
     setSelected(new Set())
+    ;(d.logs || []).forEach((x: string) => add(`Chaodi: ${x}`))
     setState(d.state)
   }
 
