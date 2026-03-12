@@ -121,6 +121,7 @@ export function App(){
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [logs, setLogs] = useState<string[]>([])
   const [showReview, setShowReview] = useState(false)
+  const [showKitty, setShowKitty] = useState(false)
   const [showSaves, setShowSaves] = useState(false)
   const [savedGames, setSavedGames] = useState<any[]>([])
   const [autosaves, setAutosaves] = useState<any[]>([])
@@ -396,6 +397,14 @@ export function App(){
     add(t(lang, 'declareOptions') + ': ' + d.label)
     setState(d.state)
     setSelected(new Set())
+  }
+
+  const takeKitty = async () => {
+    const d = await post('/api/take-kitty', { sessionId, playerSeat })
+    if (d.error) return add(d.error)
+    setSelected(new Set())
+    ;(d.logs || []).forEach((x: string) => add(`Chaodi: ${x}`))
+    setState(d.state)
   }
 
   const discard = async () => {
@@ -848,6 +857,13 @@ export function App(){
         </button>
       </div>
 
+      {showKitty && state.kittyHolder === playerSeat && (
+        <div className="panel">
+          <b>{t(lang, 'kitty')}</b>
+          <div className="cards">{(state.kittyCards || []).map((c: Card) => <span key={c.id} className={cls(c)}>{txt(c)}</span>)}</div>
+        </div>
+      )}
+
       {/* Saves modal */}
 
       <div className="panel">
@@ -862,6 +878,9 @@ export function App(){
           {['south', 'east', 'north', 'west'].map(x => <option key={x}>{t(lang, x)}</option>)}
         </select>
         <button onClick={() => setShowReview(v => !v)} disabled={!state || !state.lastRoundReview}>{t(lang, 'reviewLastRound')}</button>
+        <button onClick={() => setShowKitty(v => !v)} disabled={!state || state.kittyHolder !== playerSeat}>
+          {showKitty ? t(lang, 'hideKitty') : t(lang, 'viewKitty')}
+        </button>
       </div>
 
       {state && (
