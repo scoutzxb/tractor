@@ -4,6 +4,16 @@ import { smartDiscardKitty } from "../../src/ai/smart-discard";
 
 const SEATS: Seat[] = ["east", "north", "west", "south"];
 
+// Helper to format cards for display
+function formatCards(cards: Card[]): string {
+  return cards.map(c => {
+    if (c.joker === 'big') return '大王';
+    if (c.joker === 'small') return '小王';
+    const suitMap: Record<string, string> = { spade: '♠', heart: '♥', club: '♣', diamond: '♦' };
+    return `${suitMap[c.suit!]}${c.rank}`;
+  }).join(' ');
+}
+
 function getNextSeat(seat: Seat): Seat {
   const idx = SEATS.indexOf(seat);
   return SEATS[(idx + 1) % 4];
@@ -65,8 +75,24 @@ function executeChaoDi(
     );
   }
 
-  logs.push(`${playerSeat} 炒底成功`);
-  logs.push(`${playerSeat} 自动扣底完成`);
+  // Build card type description
+  const countLabel = chaodiCards.length === 1 ? '单张' : chaodiCards.length === 2 ? '一对' : chaodiCards.length === 3 ? '三张' : `${chaodiCards.length}张`;
+  let cardTypeLabel = '';
+  if (chaodiCards.every(c => c.joker === 'big')) {
+    cardTypeLabel = '大王';
+  } else if (chaodiCards.every(c => c.joker === 'small')) {
+    cardTypeLabel = '小王';
+  } else if (chaodiCards.some(c => c.joker === 'big') && chaodiCards.some(c => c.joker === 'small')) {
+    cardTypeLabel = '大小王';
+  } else {
+    const nonJokerCard = chaodiCards.find(c => !c.joker);
+    const suitMap: Record<string, string> = { spade: '黑桃', heart: '红桃', club: '梅花', diamond: '方块' };
+    cardTypeLabel = suitMap[nonJokerCard?.suit!] || '';
+  }
+
+  logs.push(`${playerSeat} 炒底成功: ${countLabel}${cardTypeLabel} (${formatCards(chaodiCards)})`);
+  logs.push(`${playerSeat} 获得底牌: ${formatCards(receivedKitty)}`);
+  logs.push(`${playerSeat} 扣回底牌: ${formatCards(discardedKitty)}`);
 
   return { success: true, logs };
 }
