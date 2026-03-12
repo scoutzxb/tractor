@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { t, Language } from './i18n'
 
 type Card={id:number;suit?:'spade'|'heart'|'club'|'diamond';rank?:string;joker?:'small'|'big'}
 type State=any
@@ -416,8 +417,9 @@ export function App(){
     setState(d.state)
   }
 
-  const runChaodi = async () => {
-    const d = await post('/api/run-chaodi', { sessionId, skipSouth: true, playerSeat })
+  const passChaodi = async () => {
+    const endpoint = playerSeat === 'south' ? '/api/chao-di-pass' : '/api/chao-di-pass-north'
+    const d = await post(endpoint, { sessionId, playerSeat })
     if (d.error) return add(d.error)
     ;(d.logs || []).forEach((x: string) => add(`Chaodi: ${x}`))
     setState(d.state)
@@ -432,6 +434,24 @@ export function App(){
     setState(d.state)
     setSelected(new Set())
   }
+
+  // Auto-run chaodi for AI players when entering chaodi phase
+  useEffect(() => {
+    if (!sessionId || !state || state.phase !== 'chaodi') return
+    // Only auto-run if we don't have chaodi options (meaning it's not our turn to decide)
+    const hasOptions = (state.chaoDiOptions || []).length > 0
+    if (!hasOptions) {
+      // Small delay to avoid rapid polling
+      const timer = setTimeout(() => {
+        post('/api/run-chaodi', { sessionId, playerSeat }).then((d: any) => {
+          if (d.error) return
+          ;(d.logs || []).forEach((x: string) => add(`Chaodi: ${x}`))
+          if (d.state) setState(d.state)
+        })
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [sessionId, state?.phase, playerSeat])
 
   const runPlay = async () => {
     const d = await post('/api/run-play', { sessionId })
@@ -903,8 +923,14 @@ export function App(){
 
           {state.phase === 'chaodi' && (
             <div className="panel">
-              <div className="matrix">{(state.chaoDiOptions || []).map((o: any) => <button key={o.key} onClick={() => doChaodi(o.key)}>{o.label}</button>)}</div>
-              <button onClick={runChaodi}>{t(lang, 'letAIContinue')}</button>
+              {(state.chaoDiOptions || []).length > 0 ? (
+                <>
+                  <div className="matrix">{(state.chaoDiOptions || []).map((o: any) => <button key={o.key} onClick={() => doChaodi(o.key)}>{o.label}</button>)}</div>
+                  <button onClick={passChaodi} style={{ marginTop: '8px', backgroundColor: '#6b7280' }}>{t(lang, 'abandonChaodi')}</button>
+                </>
+              ) : (
+                <div className="small text-gray-600">{t(lang, 'waitingForChaodi') || '等待其他玩家炒底...'}</div>
+              )}
             </div>
           )}
 
@@ -1042,4 +1068,3 @@ export function App(){
     </div>
   )
 }
-import { t, Language } from './i18n'
