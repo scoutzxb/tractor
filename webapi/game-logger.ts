@@ -311,7 +311,6 @@ export class GameLogger {
 
     // Trump/Kitty phase
     lines.push("--- 亮主/底牌/扣底/炒底阶段 ---\n");
-    lines.push(`底牌: ${formatCards(this.originalKittyCards.length > 0 ? this.originalKittyCards : this.kittyCards)}\n`);
 
     if (this.trumpInfo) {
       const cardCount = this.trumpInfo.cards.length;
