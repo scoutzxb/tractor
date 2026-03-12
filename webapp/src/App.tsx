@@ -863,7 +863,23 @@ export function App(){
 
       {state && (
         <>
-          <div className="panel small">{t(lang, 'phase')}: {t(lang, state.phase)} | {t(lang, 'mode')}: {t(lang, state.mode)} | {t(lang, 'trump')}: {state.trump ? `${state.trump.suit ? t(lang, state.trump.suit) : t(lang, 'noSuit')}/${t(lang, state.trump.declarer)}` : t(lang, 'noSuit')} | {t(lang, 'currentTurn')}: {state.currentTurn ? t(lang, state.currentTurn) : '-'}</div>
+          <div className="panel small">{(() => {
+            const trumpText = (() => {
+              if (!state.trump) return t(lang, 'noSuit');
+              const count = state.trump.cardsCount || 1;
+              const countLabel = count === 2 ? '一对' : count === 3 ? '三张' : `${count}张`;
+              let cardType = state.trump.suit ? t(lang, state.trump.suit) : '';
+              if (!state.trump.suit && state.trump.cards) {
+                const hasBig = state.trump.cards.some((c: any) => c.joker === 'big');
+                const hasSmall = state.trump.cards.some((c: any) => c.joker === 'small');
+                if (hasBig && hasSmall) cardType = '大小王';
+                else if (hasBig) cardType = '大王';
+                else if (hasSmall) cardType = '小王';
+              }
+              return `${countLabel}${cardType}/${t(lang, state.trump.declarer)}`;
+            })();
+            return <>{t(lang, 'phase')}: {t(lang, state.phase)} | {t(lang, 'mode')}: {t(lang, state.mode)} | {t(lang, 'trump')}: {trumpText} | {t(lang, 'currentTurn')}: {state.currentTurn ? t(lang, state.currentTurn) : '-'}</>;
+          })()}</div>
           
           <div className="panel">
             <b>{t(lang, 'score')}: {defenderTotal}</b>

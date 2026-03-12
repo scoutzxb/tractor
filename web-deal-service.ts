@@ -463,6 +463,7 @@ export function summarize(session: Session, playerSeat?: Seat) {
           suit: trump.suit,
           suitName: trump.suit ? SUIT_NAMES[trump.suit] : "无主",
           cardsCount: trump.cards.length,
+          cards: trump.cards.map(c => ({ id: c.id, suit: c.suit, rank: c.rank, joker: c.joker })),
         }
       : null,
     kittyHolder,
