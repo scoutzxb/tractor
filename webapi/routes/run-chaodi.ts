@@ -98,8 +98,8 @@ function executeChaoDi(
   }
 
   logs.push(`${playerSeat} 炒底成功: ${countLabel}${cardTypeLabel} (${formatCards(chaodiCards)})`);
-  logs.push(`${playerSeat} 获得底牌: ${formatCards(receivedKitty)}`);
-  logs.push(`${playerSeat} 扣回底牌: ${formatCards(discardedKitty)}`);
+  logs.push(`${playerSeat} 获得底牌`);
+  logs.push(`${playerSeat} 扣回底牌`);
 
   return { success: true, logs };
 }
