@@ -405,9 +405,28 @@ export class GameLogger {
     lines.push(`底牌: ${formatCards(this.originalKittyCards.length > 0 ? this.originalKittyCards : this.kittyCards)}\n`);
 
     if (this.trumpInfo) {
+      const cardCount = this.trumpInfo.cards.length;
+      const countLabel = cardCount === 2 ? '一对' : cardCount === 3 ? '三张' : `${cardCount}张`;
+      
+      // Determine what was used to declare
+      let cardTypeLabel = '';
+      if (this.trumpInfo.isNoTrump) {
+        const hasBigJoker = this.trumpInfo.cards.some(c => c.joker === 'big');
+        const hasSmallJoker = this.trumpInfo.cards.some(c => c.joker === 'small');
+        if (hasBigJoker && hasSmallJoker) {
+          cardTypeLabel = '大小王';
+        } else if (hasBigJoker) {
+          cardTypeLabel = '大王';
+        } else if (hasSmallJoker) {
+          cardTypeLabel = '小王';
+        }
+      } else {
+        cardTypeLabel = SUIT_NAMES[this.trumpInfo.suit!];
+      }
+      
       lines.push(`✅ ${SEAT_NAMES[this.trumpInfo.declarer!]} 亮主成功`);
       lines.push(`   主花色: ${this.trumpInfo.isNoTrump ? '无主' : SUIT_NAMES[this.trumpInfo.suit!]}`);
-      lines.push(`   亮主牌数: ${this.trumpInfo.cards.length}张`);
+      lines.push(`   亮主牌: ${countLabel}${cardTypeLabel} (${formatCards(this.trumpInfo.cards)})`);
       if (this.isGrabMode && this.trumpInfo.declarer !== dealer) {
         lines.push(`   🎯 ${SEAT_NAMES[this.trumpInfo.declarer!]} 成为庄家 (抢庄成功)`);
       }
