@@ -560,15 +560,35 @@ export class GameEngine {
     }
     
     // 验证首家出牌
+    // 甩牌验证：先检查自己手牌，再检查其他玩家手牌
+    const leaderFullHand = [...leaderHand]; // 领出前完整手牌
+    const otherHands = order.slice(1).map(s => this.state.hands.get(s) || []);
+    
     const leadValidation = validateLeadPlay(
       leadCards,
-      order.slice(1).map(s => this.state.hands.get(s) || []),
-      this.state.ctx!
+      otherHands,
+      this.state.ctx!,
+      leaderFullHand  // 传入领出者自己的手牌
     );
     
     if (!leadValidation.valid) {
-      // 如果甩牌失败，出最小组件
-      leadCards = leadCards.slice(0, 1);
+      if (leadValidation.isSelfInvalid) {
+        // 自己手牌中有更大的牌型：这是非法甩牌，不降级，只记录
+        this.log('play', `${leader} 非法甩牌: ${leadValidation.reason}`, {
+          cards: leadCards.map(c => c.joker ? c.joker : `${c.suit}${c.rank}`),
+          attempted: leadCards.length,
+          played: leadCards.length // 保持原样，标记为非法
+        });
+        // 注意：这里不移除牌，让非法出牌保持，后续处理需要特殊标记
+      } else {
+        // 其他玩家有更大的牌型：甩牌失败，降级为最小组件
+        leadCards = leadCards.slice(0, 1);
+        this.log('play', `${leader} 甩牌失败降级: ${leadValidation.reason}`, {
+          cards: leadCards.map(c => c.joker ? c.joker : `${c.suit}${c.rank}`),
+          attempted: leadCards.length + 1,
+          played: leadCards.length
+        });
+      }
     }
     
     // 从手牌移除

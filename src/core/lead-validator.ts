@@ -12,6 +12,7 @@ export interface LeadValidationResult {
   valid: boolean;
   failedComponent?: Component;
   reason?: string;
+  isSelfInvalid?: boolean;  // true = player themselves has bigger parts
 }
 
 /**
@@ -20,7 +21,8 @@ export interface LeadValidationResult {
 export function validateLeadPlay(
   cards: Card[],
   otherHands: Card[][],
-  ctx: GameContext
+  ctx: GameContext,
+  leaderHand?: Card[]  // 领出者自己的手牌（出牌前）
 ): LeadValidationResult {
   // 1. 检查是否同门
   if (!isSameSuit(cards, ctx)) {
@@ -40,6 +42,22 @@ export function validateLeadPlay(
   const playSuit = getPlaySuit(cards, ctx);
   const ordered = sortComponentsForThrowCheck(parseResult, ctx);
 
+  // 4.1 先检查领出者自己手牌中是否有更大的牌型
+  if (leaderHand && leaderHand.length > 0) {
+    for (const target of ordered) {
+      const hasBigger = checkHasBiggerStructure(target, leaderHand, playSuit, ctx);
+      if (hasBigger) {
+        return {
+          valid: false,
+          failedComponent: target,
+          reason: `甩牌非法：自己手牌中有更大的${getComponentName(target.type)}`,
+          isSelfInvalid: true
+        };
+      }
+    }
+  }
+
+  // 4.2 再检查其他玩家手牌中是否有更大的牌型
   for (const target of ordered) {
     for (const hand of otherHands) {
       const hasBigger = checkHasBiggerStructure(target, hand, playSuit, ctx);
@@ -47,7 +65,8 @@ export function validateLeadPlay(
         return {
           valid: false,
           failedComponent: target,
-          reason: `甩牌失败：存在更大的${getComponentName(target.type)}`
+          reason: `甩牌失败：存在更大的${getComponentName(target.type)}`,
+          isSelfInvalid: false
         };
       }
     }

@@ -471,8 +471,20 @@ export class GameLogger {
       lines.push("最终状态:");
       lines.push(`  主花色: ${ctx.trumpSuit ? SUIT_NAMES[ctx.trumpSuit] : '无主'}`);
       lines.push(`  庄家: ${SEAT_NAMES[dealer]}`);
-      if (this.kittyCards.length > 0) {
-        lines.push(`  底牌: ${formatCards(this.kittyCards)}`);
+      
+      // 确定最终底牌：优先使用最后一次炒底扣下的底牌
+      let finalKitty: Card[] = this.kittyCards;
+      if (this.chaoDiRounds.length > 0) {
+        // 使用最后一次炒底扣下的底牌
+        const lastChaoDi = this.chaoDiRounds[this.chaoDiRounds.length - 1];
+        finalKitty = lastChaoDi.discardedKitty;
+      } else if (this.dealerKitty) {
+        // 如果没有炒底，使用庄家扣下的底牌
+        finalKitty = this.dealerKitty.discarded;
+      }
+      
+      if (finalKitty.length > 0) {
+        lines.push(`  底牌: ${formatCards(finalKitty)}`);
       }
       lines.push("");
     }
