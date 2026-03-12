@@ -72,6 +72,7 @@ export async function handleNewGame(req: Request, deps: any) {
   };
 
   s.logger.setGrabMode(isGrabMode);
+  s.logger.setGameStartState(dealer, { eastWest: level as Rank, northSouth: level as Rank });
   
   sessions.set(s.id, s);
   deps.serverLog?.("new_game", { sessionId: s.id, mode, level, dealer, playerMode, isMultiplayer: playerMode === 'two', humanSeats: [...humanSeats] });

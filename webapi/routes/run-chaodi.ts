@@ -73,6 +73,13 @@ function executeChaoDi(
       receivedKitty, // received kitty (what player got from kitty)
       discardedKitty // discarded kitty (what player put back)
     );
+    // IMPORTANT: Update the final kitty to what was just discarded
+    s.logger.recordKitty(discardedKitty);
+  }
+
+  // Flush chao-di event to log file
+  if (s.logger && state.ctx) {
+    s.logger.flushToFile(state.ctx, state.dealer, { eastWest: state.level as Rank, northSouth: state.level as Rank });
   }
 
   // Build card type description
@@ -188,6 +195,11 @@ export function processChaodiPolling(
     s.logger.recordInitialHands(state.hands, state.ctx);
   }
 
+  // Flush final chao-di state to log file
+  if (s.logger && state.ctx) {
+    s.logger.flushToFile(state.ctx, state.dealer, { eastWest: state.level as Rank, northSouth: state.level as Rank });
+  }
+
   autoSaveForAllPlayers(s);
 
   logs.push("炒底阶段结束，进入出牌阶段");
@@ -283,6 +295,11 @@ export async function handleChaoDiPass(req: Request, deps: any) {
 
     if (s.logger && state.ctx) {
       s.logger.recordInitialHands(state.hands, state.ctx);
+    }
+
+    // Flush final chao-di state to log file
+    if (s.logger && state.ctx) {
+      s.logger.flushToFile(state.ctx, state.dealer, { eastWest: state.level as Rank, northSouth: state.level as Rank });
     }
 
     autoSaveForAllPlayers(s);

@@ -67,6 +67,9 @@ export function deserializeSession(serialized: any, deps: any): Session {
   if (serialized.loggerState) {
     session.logger.restoreState(serialized.loggerState);
   }
+  
+  // Always set game start state from session config (handles both new and old autosaves)
+  session.logger.setGameStartState(serialized.configuredDealer, serialized.teamLevels);
 
   return session;
 }

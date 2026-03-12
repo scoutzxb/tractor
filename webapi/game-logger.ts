@@ -144,11 +144,11 @@ export class GameLogger {
   private gameResult: {
     dealerTeamScore: number;
     defenderTeamScore: number;
-    kittyBaseScore: number;      // 底牌原始分数
-    kittyMultiplier: number;     // 抠底倍数
-    kittyScore: number;          // 抠底得分（底牌分数 × 倍数）
-    isKittyTaken: boolean;       // 是否抠底
-    totalScore: number;          // 防家总分（含抠底）
+    kittyBaseScore?: number;      // 底牌原始分数
+    kittyMultiplier?: number;     // 抠底倍数
+    kittyScore?: number;          // 抠底得分
+    isKittyTaken?: boolean;       // 是否抠底
+    totalScore?: number;          // 防家总分（含抠底）
     winner: 'dealer' | 'defender';
     nextDealer: Seat;
     nextLevel: Rank;
@@ -161,6 +161,11 @@ export class GameLogger {
     discarded: Card[];
   } | null = null;
 
+  // Game state captured at start (doesn't change)
+  private gameStartDealer: Seat | null = null;
+  private gameStartTeamLevels: { eastWest: Rank; northSouth: Rank } | null = null;
+  private filePath: string | null = null;
+
   constructor(gameNumber: number, outputDir: string = "game-logs-web", sessionId?: string) {
     this.gameNumber = gameNumber;
     this.sessionId = sessionId || `game_${gameNumber}`;
@@ -170,6 +175,12 @@ export class GameLogger {
   // Set game mode
   setGrabMode(isGrab: boolean): void {
     this.isGrabMode = isGrab;
+  }
+
+  // Capture game start state (dealer and team levels at game start)
+  setGameStartState(dealer: Seat, teamLevels: { eastWest: Rank; northSouth: Rank }): void {
+    this.gameStartDealer = dealer;
+    this.gameStartTeamLevels = { ...teamLevels };
   }
 
   // Record a dealing round
@@ -266,108 +277,6 @@ export class GameLogger {
   // Record dealer's kitty handling (what they received and put back)
   recordDealerKitty(seat: Seat, received: Card[], discarded: Card[]): void {
     this.dealerKitty = { seat, received: [...received], discarded: [...discarded] };
-  }
-
-  exportState(): GameLoggerState {
-    return {
-      gameNumber: this.gameNumber,
-      dealingRounds: this.dealingRounds.map((round) => ({
-        round: round.round,
-        cardsBySeat: serializeCardMap(round.cardsBySeat),
-        declarations: round.declarations.map((decl) => ({
-          seat: decl.seat,
-          cards: cloneCards(decl.cards),
-        })),
-      })),
-      kittyCards: cloneCards(this.kittyCards),
-      originalKittyCards: cloneCards(this.originalKittyCards),
-      trumpInfo: this.trumpInfo
-        ? {
-            declarer: this.trumpInfo.declarer!,
-            suit: this.trumpInfo.suit,
-            cards: cloneCards(this.trumpInfo.cards),
-            isNoTrump: this.trumpInfo.isNoTrump,
-          }
-        : null,
-      dealerKitty: this.dealerKitty,
-      chaoDiRounds: this.chaoDiRounds.map((cd) => ({
-        seat: cd.seat,
-        cards: cloneCards(cd.cards),
-        success: cd.success,
-        newTrump: cd.newTrump ? { ...cd.newTrump } : null,
-        receivedKitty: cloneCards(cd.receivedKitty),
-        discardedKitty: cloneCards(cd.discardedKitty),
-      })),
-      initialHands: serializeHands(this.initialHands),
-      tricks: this.tricks.map((trick) => ({
-        round: trick.round,
-        leader: trick.leader,
-        plays: trick.plays.map((p) => ({ seat: p.seat, cards: cloneCards(p.cards) })),
-        winner: trick.winner,
-        points: trick.points,
-        resolvedStructure: trick.resolvedStructure,
-        throwFailure: trick.throwFailure
-          ? {
-              seat: trick.throwFailure.seat,
-              attemptedCards: cloneCards(trick.throwFailure.attemptedCards),
-              reason: trick.throwFailure.reason,
-              fallbackCards: cloneCards(trick.throwFailure.fallbackCards),
-            }
-          : undefined,
-      })),
-      finalScores: serializeScoreMap(this.finalScores),
-      gameResult: this.gameResult ? { ...this.gameResult } : null,
-    };
-  }
-
-  restoreState(state: GameLoggerState) {
-    this.gameNumber = state.gameNumber;
-    this.dealingRounds = state.dealingRounds.map((round) => ({
-      round: round.round,
-      cardsBySeat: deserializeCardMap(round.cardsBySeat),
-      declarations: round.declarations.map((decl) => ({
-        seat: decl.seat,
-        cards: cloneCards(decl.cards),
-      })),
-    }));
-    this.kittyCards = cloneCards(state.kittyCards);
-    this.originalKittyCards = cloneCards(state.originalKittyCards);
-    this.trumpInfo = state.trumpInfo
-      ? {
-          declarer: state.trumpInfo.declarer,
-          suit: state.trumpInfo.suit,
-          cards: cloneCards(state.trumpInfo.cards),
-          isNoTrump: state.trumpInfo.isNoTrump,
-        }
-      : null;
-    this.dealerKitty = state.dealerKitty;
-    this.chaoDiRounds = state.chaoDiRounds.map((cd) => ({
-      seat: cd.seat,
-      cards: cloneCards(cd.cards),
-      success: cd.success,
-      newTrump: cd.newTrump ? { ...cd.newTrump } : null,
-      receivedKitty: cloneCards(cd.receivedKitty),
-      discardedKitty: cloneCards(cd.discardedKitty),
-    }));
-    this.initialHands = deserializeHands(state.initialHands);
-    this.tricks = state.tricks.map((trick) => ({
-      round: trick.round,
-      leader: trick.leader,
-      plays: trick.plays.map((p) => ({ seat: p.seat, cards: cloneCards(p.cards) })),
-      winner: trick.winner,
-      points: trick.points,
-      resolvedStructure: trick.resolvedStructure,
-      throwFailure: trick.throwFailure
-        ? {
-            seat: trick.throwFailure.seat,
-            attemptedCards: cloneCards(trick.throwFailure.attemptedCards),
-            reason: trick.throwFailure.reason,
-            fallbackCards: cloneCards(trick.throwFailure.fallbackCards),
-          }
-        : undefined,
-    }));
-    this.finalScores = deserializeScoreMap(state.finalScores);
-    this.gameResult = state.gameResult ? { ...state.gameResult } : null;
   }
 
   // Generate the log content
@@ -471,20 +380,8 @@ export class GameLogger {
       lines.push("最终状态:");
       lines.push(`  主花色: ${ctx.trumpSuit ? SUIT_NAMES[ctx.trumpSuit] : '无主'}`);
       lines.push(`  庄家: ${SEAT_NAMES[dealer]}`);
-      
-      // 确定最终底牌：优先使用最后一次炒底扣下的底牌
-      let finalKitty: Card[] = this.kittyCards;
-      if (this.chaoDiRounds.length > 0) {
-        // 使用最后一次炒底扣下的底牌
-        const lastChaoDi = this.chaoDiRounds[this.chaoDiRounds.length - 1];
-        finalKitty = lastChaoDi.discardedKitty;
-      } else if (this.dealerKitty) {
-        // 如果没有炒底，使用庄家扣下的底牌
-        finalKitty = this.dealerKitty.discarded;
-      }
-      
-      if (finalKitty.length > 0) {
-        lines.push(`  底牌: ${formatCards(finalKitty)}`);
+      if (this.kittyCards.length > 0) {
+        lines.push(`  底牌: ${formatCards(this.kittyCards)}`);
       }
       lines.push("");
     }
@@ -596,7 +493,7 @@ export class GameLogger {
     return lines.join('\n');
   }
 
-  // Save the log to a file
+  // Save the log to a file (writes everything at once)
   saveLog(dealer: Seat, teamLevels: { eastWest: Rank; northSouth: Rank }, ctx: GameContext | null): string {
     // Create output directory if needed
     if (!fs.existsSync(this.outputDir)) {
@@ -612,6 +509,141 @@ export class GameLogger {
 
     fs.writeFileSync(filepath, content, 'utf-8');
     return filepath;
+  }
+
+  // NEW: Append current content to file incrementally
+  flushToFile(ctx: GameContext | null, currentDealer?: Seat, currentTeamLevels?: { eastWest: Rank; northSouth: Rank }): void {
+    // Use captured game start state if available, otherwise fall back to current state
+    const dealer = this.gameStartDealer ?? currentDealer ?? null;
+    const teamLevels = this.gameStartTeamLevels ?? currentTeamLevels ?? null;
+    
+    if (!dealer || !teamLevels) {
+      console.error('GameLogger: game start state not set and no fallback provided, cannot flush');
+      return;
+    }
+
+    // Create output directory if needed
+    if (!fs.existsSync(this.outputDir)) {
+      fs.mkdirSync(this.outputDir, { recursive: true });
+    }
+
+    // Generate filepath if not already set
+    if (!this.filePath) {
+      const now = new Date();
+      const dateStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const filename = `game_${dateStr}_${this.sessionId}.md`;
+      this.filePath = path.join(this.outputDir, filename);
+    }
+
+    // Generate full content and write
+    const content = this.generateLogContent(dealer, teamLevels, ctx);
+    fs.writeFileSync(this.filePath, content, 'utf-8');
+  }
+
+  exportState(): GameLoggerState {
+    return {
+      gameNumber: this.gameNumber,
+      gameStartDealer: this.gameStartDealer,
+      gameStartTeamLevels: this.gameStartTeamLevels,
+      dealingRounds: this.dealingRounds.map((round) => ({
+        round: round.round,
+        cardsBySeat: serializeCardMap(round.cardsBySeat),
+        declarations: round.declarations.map((decl) => ({
+          seat: decl.seat,
+          cards: cloneCards(decl.cards),
+        })),
+      })),
+      kittyCards: cloneCards(this.kittyCards),
+      originalKittyCards: cloneCards(this.originalKittyCards),
+      trumpInfo: this.trumpInfo
+        ? {
+            declarer: this.trumpInfo.declarer,
+            suit: this.trumpInfo.suit,
+            cards: cloneCards(this.trumpInfo.cards),
+            isNoTrump: this.trumpInfo.isNoTrump,
+          }
+        : null,
+      dealerKitty: this.dealerKitty,
+      chaoDiRounds: this.chaoDiRounds.map((cd) => ({
+        seat: cd.seat,
+        cards: cloneCards(cd.cards),
+        success: cd.success,
+        newTrump: cd.newTrump ? { ...cd.newTrump } : null,
+        receivedKitty: cloneCards(cd.receivedKitty),
+        discardedKitty: cloneCards(cd.discardedKitty),
+      })),
+      initialHands: serializeHands(this.initialHands),
+      tricks: this.tricks.map((trick) => ({
+        round: trick.round,
+        leader: trick.leader,
+        plays: trick.plays.map((p) => ({ seat: p.seat, cards: cloneCards(p.cards) })),
+        winner: trick.winner,
+        points: trick.points,
+        resolvedStructure: trick.resolvedStructure,
+        throwFailure: trick.throwFailure
+          ? {
+              seat: trick.throwFailure.seat,
+              attemptedCards: cloneCards(trick.throwFailure.attemptedCards),
+              reason: trick.throwFailure.reason,
+              fallbackCards: cloneCards(trick.throwFailure.fallbackCards),
+            }
+          : undefined,
+      })),
+      finalScores: serializeScoreMap(this.finalScores),
+      gameResult: this.gameResult ? { ...this.gameResult } : null,
+    };
+  }
+
+  restoreState(state: GameLoggerState) {
+    this.gameNumber = state.gameNumber;
+    this.gameStartDealer = state.gameStartDealer || null;
+    this.gameStartTeamLevels = state.gameStartTeamLevels || null;
+    this.dealingRounds = state.dealingRounds.map((round) => ({
+      round: round.round,
+      cardsBySeat: deserializeCardMap(round.cardsBySeat),
+      declarations: round.declarations.map((decl) => ({
+        seat: decl.seat,
+        cards: cloneCards(decl.cards),
+      })),
+    }));
+    this.kittyCards = cloneCards(state.kittyCards);
+    this.originalKittyCards = cloneCards(state.originalKittyCards);
+    this.trumpInfo = state.trumpInfo
+      ? {
+          declarer: state.trumpInfo.declarer,
+          suit: state.trumpInfo.suit,
+          cards: cloneCards(state.trumpInfo.cards),
+          isNoTrump: state.trumpInfo.isNoTrump,
+        }
+      : null;
+    this.dealerKitty = state.dealerKitty;
+    this.chaoDiRounds = state.chaoDiRounds.map((cd) => ({
+      seat: cd.seat,
+      cards: cloneCards(cd.cards),
+      success: cd.success,
+      newTrump: cd.newTrump ? { ...cd.newTrump } : null,
+      receivedKitty: cloneCards(cd.receivedKitty),
+      discardedKitty: cloneCards(cd.discardedKitty),
+    }));
+    this.initialHands = deserializeHands(state.initialHands);
+    this.tricks = state.tricks.map((trick) => ({
+      round: trick.round,
+      leader: trick.leader,
+      plays: trick.plays.map((p) => ({ seat: p.seat, cards: cloneCards(p.cards) })),
+      winner: trick.winner,
+      points: trick.points,
+      resolvedStructure: trick.resolvedStructure,
+      throwFailure: trick.throwFailure
+        ? {
+            seat: trick.throwFailure.seat,
+            attemptedCards: cloneCards(trick.throwFailure.attemptedCards),
+            reason: trick.throwFailure.reason,
+            fallbackCards: cloneCards(trick.throwFailure.fallbackCards),
+          }
+        : undefined,
+    }));
+    this.finalScores = deserializeScoreMap(state.finalScores);
+    this.gameResult = state.gameResult ? { ...state.gameResult } : null;
   }
 }
 
@@ -710,6 +742,8 @@ function deserializeScoreMap(obj: Record<Seat, number>): Map<Seat, number> {
 
 export interface GameLoggerState {
   gameNumber: number;
+  gameStartDealer: Seat | null;
+  gameStartTeamLevels: { eastWest: Rank; northSouth: Rank } | null;
   dealingRounds: Array<{
     round: number;
     cardsBySeat: Record<Seat, Card>;

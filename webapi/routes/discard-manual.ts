@@ -43,7 +43,12 @@ export async function handleDiscardManual(req: Request, deps: any) {
   // Record dealer's kitty handling
   if (s.logger) {
     const receivedKitty = s.dealerReceivedKitty || []; // Cards dealer received from original kitty
-    s.logger.recordDealerKitty(playerSeat, receivedKitty, discard);
+    // In normal mode, the dealer takes the kitty; in grab mode, the declarer takes it
+    // Use dealer from state as the source of truth for who should take the kitty
+    const actualKittyHolder = s.isGrabMode 
+      ? (state.trumpState.kittyHolder || playerSeat)
+      : (state.dealer || state.trumpState.kittyHolder || playerSeat);
+    s.logger.recordDealerKitty(actualKittyHolder, receivedKitty, discard);
     // Clear the stored value after logging
     s.dealerReceivedKitty = undefined;
   }
@@ -51,6 +56,12 @@ export async function handleDiscardManual(req: Request, deps: any) {
   // Record initial hands after human player discards
   if (s.logger && state.ctx) {
     s.logger.recordInitialHands(state.hands, state.ctx);
+  }
+  
+  // IMPORTANT: Flush immediately after dealer takes kitty and puts cards back
+  // This ensures the log shows the correct dealer taking the kitty
+  if (s.logger && state.ctx) {
+    s.logger.flushToFile(state.ctx, state.dealer, { eastWest: state.level as Rank, northSouth: state.level as Rank });
   }
   
   // Fix: update lastLogIndex after successful discard

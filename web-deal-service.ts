@@ -696,58 +696,14 @@ function saveGameLog(session: Session): string | null {
   if (!session.logger) return null;
   
   const state = session.engine.getState();
-  const dealer = state.dealer;
   
-  // Calculate the CURRENT game's team levels (not the next game's)
-  // session.teamLevels has already been updated to next game's levels by calculateGameResult
-  // So we need to calculate backwards from the game result
-  let currentTeamLevels: { eastWest: Rank; northSouth: Rank };
+  // Use the logger's captured game start state if available
+  // This ensures we use the dealer/levels from when the game started, not the current state
+  const capturedDealer = (session.logger as any).gameStartDealer;
+  const capturedTeamLevels = (session.logger as any).gameStartTeamLevels;
   
-  if (session.gameResult) {
-    const nextLevel = session.gameResult.nextLevel;
-    const nextDealer = session.gameResult.nextDealer;
-    const nextDealerTeam = getDealerTeam(nextDealer);
-    
-    // If defender won: the team that is now dealer was the defender (they upgraded)
-    // If dealer won: the team that is now dealer was the dealer (they kept their level)
-    const winner = session.gameResult.winner;
-    
-    if (winner === 'defender') {
-      // Defender won and upgraded - so nextLevel is the defender's new level
-      // The dealer team stayed at their old level
-      if (nextDealerTeam === 'eastWest') {
-        // EastWest is now dealer (they were defender and won)
-        currentTeamLevels = {
-          eastWest: nextLevel,
-          northSouth: session.teamLevels.northSouth  // This stayed the same
-        };
-      } else {
-        // NorthSouth is now dealer (they were defender and won)
-        currentTeamLevels = {
-          eastWest: session.teamLevels.eastWest,  // This stayed the same
-          northSouth: nextLevel
-        };
-      }
-    } else {
-      // Dealer won and kept their level
-      // The dealer team stayed at their level (which is the current level in the log)
-      const currentDealerTeam = getDealerTeam(dealer);
-      if (currentDealerTeam === 'eastWest') {
-        currentTeamLevels = {
-          eastWest: state.level as Rank,
-          northSouth: session.teamLevels.northSouth  // Defender's level may have changed
-        };
-      } else {
-        currentTeamLevels = {
-          eastWest: session.teamLevels.eastWest,  // Defender's level may have changed
-          northSouth: state.level as Rank
-        };
-      }
-    }
-  } else {
-    // Fallback to session.teamLevels if no game result (shouldn't happen in normal flow)
-    currentTeamLevels = { ...session.teamLevels };
-  }
+  const dealer = capturedDealer || state.dealer;
+  const teamLevels = capturedTeamLevels || session.teamLevels;
   
   for (const trick of session.tricks) {
     session.logger.recordTrick(trick);
@@ -780,11 +736,11 @@ function saveGameLog(session: Session): string | null {
     });
   }
   
-  const filepath = session.logger.saveLog(
-    state.dealer,
-    currentTeamLevels,  // Use the calculated current levels, not session.teamLevels
-    state.ctx
-  );
+  // Final flush - this will write the complete log with the captured game start state
+  const filepath = (session.logger as any).filePath;
+  if (filepath && state.ctx) {
+    session.logger.flushToFile(state.ctx, state.dealer, session.teamLevels);
+  }
   
   console.log(`Game log saved to: ${filepath}`);
   return filepath;

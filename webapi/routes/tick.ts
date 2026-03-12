@@ -65,6 +65,12 @@ export async function handleTick(req: Request, deps: any) {
     // Dealing finished - autosave before entering postDeal
     autoSaveForAllPlayers(s);
     
+    // Flush dealing phase to log file immediately
+    if (s.logger) {
+      const state = s.engine.getState();
+      s.logger.flushToFile(null, state.dealer, { eastWest: state.level as Rank, northSouth: state.level as Rank });
+    }
+    
     // 发牌结束，进入postDeal等待阶段（允许补亮）
     s.phase = "postDeal";
     s.postDealStartTime = Date.now();

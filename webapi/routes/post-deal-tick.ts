@@ -48,6 +48,11 @@ export async function handlePostDealTick(req: Request, deps: any) {
     );
   }
   
+  // Flush trump/kitty phase to log file
+  if (s.logger && stateAfterFinalize.ctx) {
+    s.logger.flushToFile(stateAfterFinalize.ctx, stateAfterFinalize.dealer, { eastWest: stateAfterFinalize.level as Rank, northSouth: stateAfterFinalize.level as Rank });
+  }
+  
   // Initialize play phase state on the session
   s.currentLeader = stateAfterFinalize.dealer;
   s.currentTrick = [];
@@ -62,26 +67,29 @@ export async function handlePostDealTick(req: Request, deps: any) {
   } else {
     // AI holds kitty - auto discard and proceed
     
-    // Record what dealer received from kitty
+    // Record what kitty holder received from kitty
     const stateBeforeDiscard = s.engine.getState();
-    const dealer = stateBeforeDiscard.dealer;
+    // In normal mode, dealer takes the kitty; in grab mode, the declarer takes it
+    // Use dealer from state as the source of truth
+    const kittyHolder = s.isGrabMode
+      ? (stateAfterFinalize.trumpState.kittyHolder || stateBeforeDiscard.dealer)
+      : stateBeforeDiscard.dealer;
     const kittyBefore = [...stateBeforeDiscard.kitty];
-    const dealerHandBefore = [...(stateBeforeDiscard.hands.get(dealer) || [])];
     
     s.engine.discardPhase();
     
     // Record final kitty and initial hands after AI auto-discard
     const stateAfterDiscard = s.engine.getState();
     
-    // Calculate what dealer received (kitty cards now in hand that weren't there before)
-    const dealerHandAfter = stateAfterDiscard.hands.get(dealer) || [];
-    const receivedKitty = kittyBefore; // The dealer received the entire kitty
+    // Calculate what kitty holder received (kitty cards now in hand)
+    const receivedKitty = kittyBefore; // The kitty holder received the entire kitty
     
-    // Calculate what dealer discarded (cards now in kitty)
+    // Calculate what kitty holder discarded (cards now in kitty)
     const discardedKitty = [...stateAfterDiscard.kitty];
     
     if (s.logger) {
-      s.logger.recordDealerKitty(dealer, receivedKitty, discardedKitty);
+      // Use the correct kitty holder (dealer in normal mode)
+      s.logger.recordDealerKitty(kittyHolder, receivedKitty, discardedKitty);
     }
     
     if (s.logger && stateAfterDiscard.kitty) {
@@ -90,6 +98,11 @@ export async function handlePostDealTick(req: Request, deps: any) {
     
     if (s.logger && stateAfterDiscard.ctx) {
       s.logger.recordInitialHands(stateAfterDiscard.hands, stateAfterDiscard.ctx);
+    }
+    
+    // IMPORTANT: Flush immediately after AI dealer takes kitty and puts cards back
+    if (s.logger && stateAfterDiscard.ctx) {
+      s.logger.flushToFile(stateAfterDiscard.ctx, stateAfterDiscard.dealer, { eastWest: stateAfterDiscard.level as Rank, northSouth: stateAfterDiscard.level as Rank });
     }
     
     s.currentLeader = s.engine.getState().dealer;
