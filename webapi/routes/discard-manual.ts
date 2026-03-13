@@ -61,7 +61,7 @@ export async function handleDiscardManual(req: Request, deps: any) {
   // IMPORTANT: Flush immediately after dealer takes kitty and puts cards back
   // This ensures the log shows the correct dealer taking the kitty
   if (s.logger && state.ctx) {
-    s.logger.flushToFile(state.ctx, state.dealer, { eastWest: state.level as Rank, northSouth: state.level as Rank });
+    s.logger.flushToFile(state.ctx, state.dealer, s.teamLevels);
   }
   
   // Fix: update lastLogIndex after successful discard

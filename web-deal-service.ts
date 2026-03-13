@@ -1333,6 +1333,25 @@ async function handleDiscardGeneric(req: Request, deps: any, playerSeat: Seat): 
   state.kitty = toDiscard;
   
   s.awaitingDiscard = false;
+  
+  // Record dealer's kitty handling
+  if (s.logger) {
+    const receivedKitty = s.dealerReceivedKitty || [];
+    s.logger.recordDealerKitty(playerSeat, receivedKitty, toDiscard);
+    s.dealerReceivedKitty = undefined;
+  }
+  
+  // Record initial hands after discard
+  if (s.logger && state.ctx) {
+    s.logger.recordInitialHands(state.hands, state.ctx);
+  }
+  
+  // IMPORTANT: Flush immediately after dealer takes kitty and puts cards back
+  // This ensures the log shows the correct dealer taking the kitty
+  if (s.logger && state.ctx) {
+    s.logger.flushToFile(state.ctx, state.dealer, s.teamLevels);
+  }
+  
   s.phase = "chaodi";
   
   // Initialize chaodi polling state

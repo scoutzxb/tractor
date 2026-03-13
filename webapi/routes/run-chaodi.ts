@@ -79,7 +79,7 @@ function executeChaoDi(
 
   // Flush chao-di event to log file
   if (s.logger && state.ctx) {
-    s.logger.flushToFile(state.ctx, state.dealer, { eastWest: state.level as Rank, northSouth: state.level as Rank });
+    s.logger.flushToFile(state.ctx, state.dealer, s.teamLevels);
   }
 
   // Build card type description
@@ -197,7 +197,7 @@ export function processChaodiPolling(
 
   // Flush final chao-di state to log file
   if (s.logger && state.ctx) {
-    s.logger.flushToFile(state.ctx, state.dealer, { eastWest: state.level as Rank, northSouth: state.level as Rank });
+    s.logger.flushToFile(state.ctx, state.dealer, s.teamLevels);
   }
 
   autoSaveForAllPlayers(s);
@@ -299,7 +299,7 @@ export async function handleChaoDiPass(req: Request, deps: any) {
 
     // Flush final chao-di state to log file
     if (s.logger && state.ctx) {
-      s.logger.flushToFile(state.ctx, state.dealer, { eastWest: state.level as Rank, northSouth: state.level as Rank });
+      s.logger.flushToFile(state.ctx, state.dealer, s.teamLevels);
     }
 
     autoSaveForAllPlayers(s);
