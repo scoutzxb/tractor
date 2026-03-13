@@ -1,6 +1,6 @@
 import type { Card, GameContext, Component, ParseResult, Seat, Suit } from './types';
 import { parseCards, getPlaySuit } from './parser';
-import { classifyCard } from './deck';
+import { classifyCard, cardCompare } from './deck';
 import { validateKill } from './kill-validator';
 
 const RANK_VALUES: Record<string, number> = {
@@ -38,6 +38,71 @@ function compareCardsForStrategy(a: Card, b: Card, ctx: GameContext): number {
   if (aClass === 'trump' && bClass !== 'trump') return 1;
   if (aClass !== 'trump' && bClass === 'trump') return -1;
   return getCardValueForStrategy(a, ctx) - getCardValueForStrategy(b, ctx);
+}
+
+/**
+ * 按照领牌结构比较两个杀牌的大小
+ * 规则：按结构优先级逐个比较对应组件（超级拖拉机>三张>拖拉机>对子>单张）
+ * 特殊规则：对于 pair+single 结构，对子相等时先出者胜，不比较单张
+ * 当对应组件相同时，先出者胜
+ */
+function compareKillsByLeadStructure(
+  kill1Cards: Card[],
+  kill2Cards: Card[],
+  leadStructure: ParseResult,
+  ctx: GameContext
+): number {
+  // 解析两个杀牌的结构
+  const kill1Parsed = parseCards(kill1Cards, ctx);
+  const kill2Parsed = parseCards(kill2Cards, ctx);
+
+  // 按领牌结构顺序逐个比较
+  const priority = ['super_tractor', 'triple', 'tractor', 'pair', 'single'];
+
+  for (const leadComp of leadStructure) {
+    const leadType = leadComp.type;
+
+    // 在kill1中找匹配类型的组件
+    let kill1Comp = kill1Parsed.find(c => c.type === leadType);
+    // 在kill2中找匹配类型的组件
+    let kill2Comp = kill2Parsed.find(c => c.type === leadType);
+
+    // 如果没有精确匹配，找更高级别的组件（高阶可以杀低阶）
+    if (!kill1Comp) {
+      const leadTypeIdx = priority.indexOf(leadType);
+      for (let i = 0; i < leadTypeIdx; i++) {
+        kill1Comp = kill1Parsed.find(c => c.type === priority[i]);
+        if (kill1Comp) break;
+      }
+    }
+    if (!kill2Comp) {
+      const leadTypeIdx = priority.indexOf(leadType);
+      for (let i = 0; i < leadTypeIdx; i++) {
+        kill2Comp = kill2Parsed.find(c => c.type === priority[i]);
+        if (kill2Comp) break;
+      }
+    }
+
+    // 如果一家有匹配的组件而另一家没有
+    if (kill1Comp && !kill2Comp) return 1;
+    if (!kill1Comp && kill2Comp) return -1;
+    if (!kill1Comp && !kill2Comp) continue;
+
+    // 比较该组件的最大牌
+    const max1 = getMaxCard(kill1Comp!.cards, ctx);
+    const max2 = getMaxCard(kill2Comp!.cards, ctx);
+    const comp = cardCompare(max1, max2, ctx);
+    if (comp !== 0) return comp;
+
+    // 对子+单张结构，对子相等时先出者胜，不比较单张
+    if (leadType === 'pair' && leadStructure.some(c => c.type === 'single')) {
+      return 0; // 对子相同，先出者胜
+    }
+    // 其他情况继续比较下一个组件
+  }
+
+  // 所有对应组件都相等，返回0（表示相等，先出者胜）
+  return 0;
 }
 
 function getStructure(components: ParseResult): {
@@ -199,15 +264,14 @@ export function getWinningPlayDetailed(
       winning = play;
       winningStructure = structure;
     } else if (structureComparison === 0) {
-      const maxCardComparison = compareCardsForStrategy(
-        getMaxCard(play.cards, ctx),
-        getMaxCard(winning.cards, ctx),
-        ctx
-      );
-      if (maxCardComparison > 0) {
+      // 结构相同，按照领牌结构逐个比较组件
+      const parsedLead = parseCards(leadPlay.cards, ctx);
+      const comp = compareKillsByLeadStructure(play.cards, winning.cards, parsedLead, ctx);
+      if (comp > 0) {
         winning = play;
         winningStructure = structure;
       }
+      // comp === 0 时保持先出者胜（不更新winning）
     }
   }
 
