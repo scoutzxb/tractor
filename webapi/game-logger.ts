@@ -399,69 +399,71 @@ export class GameLogger {
       lines.push("");
     }
 
-    // Play phase
-    lines.push("--- 出牌阶段 ---\n");
-    for (const trick of this.tricks) {
-      lines.push(`\n第 ${trick.round} 轮`);
-      lines.push("-".repeat(40));
-      
-      const playOrder: Seat[] = [];
-      let current = trick.leader;
-      for (let i = 0; i < 4; i++) {
-        playOrder.push(current);
-        current = ['east', 'north', 'west', 'south'][(['east', 'north', 'west', 'south'].indexOf(current) + 1) % 4] as Seat;
-      }
-      lines.push(`出牌顺序: ${playOrder.map(s => SEAT_NAMES[s]).join(' -> ')}\n`);
-
-      if (trick.throwFailure) {
-        lines.push(`⚠️  ${SEAT_NAMES[trick.throwFailure.seat]} 试图甩牌: ${formatCards(trick.throwFailure.attemptedCards)}`);
-        lines.push(`   甩牌失败: ${trick.throwFailure.reason || '结构被压制'}`);
-        lines.push(`   按规则改出: ${formatCards(trick.throwFailure.fallbackCards)}\n`);
-      }
-
-      for (const p of trick.plays) {
-        const label = p.seat === trick.leader ? `${SEAT_NAMES[p.seat]} (首家)` : SEAT_NAMES[p.seat];
-        lines.push(`${label}: ${formatCards(p.cards)}`);
-      }
-
-      lines.push(`\n🏆 ${SEAT_NAMES[trick.winner]} 赢得此轮！获得 ${trick.points} 分`);
-
-      // Cumulative scores (running total)
-      if (ctx) {
-        const partner = getPartner(dealer);
-        const runningScores = new Map<Seat, number>();
-        for (const s of seats) runningScores.set(s, 0);
+    // Play phase - only if tricks have been recorded
+    if (this.tricks.length > 0) {
+      lines.push("--- 出牌阶段 ---\n");
+      for (const trick of this.tricks) {
+        lines.push(`\n第 ${trick.round} 轮`);
+        lines.push("-".repeat(40));
         
-        // Calculate running scores up to this trick
-        for (const t of this.tricks) {
-          if (t.round > trick.round) break;
-          runningScores.set(t.winner, (runningScores.get(t.winner) || 0) + t.points);
+        const playOrder: Seat[] = [];
+        let current = trick.leader;
+        for (let i = 0; i < 4; i++) {
+          playOrder.push(current);
+          current = ['east', 'north', 'west', 'south'][(['east', 'north', 'west', 'south'].indexOf(current) + 1) % 4] as Seat;
         }
-        
-        const dealerTeamScore = (runningScores.get(dealer) || 0) + (runningScores.get(partner) || 0);
-        const defenderScore = seats
-          .filter(s => s !== dealer && s !== partner)
-          .reduce((sum, s) => sum + (runningScores.get(s) || 0), 0);
-        lines.push(`\n累计得分:`);
-        lines.push(`  庄家方 (${SEAT_NAMES[dealer]} + ${SEAT_NAMES[partner]}): ${dealerTeamScore} 分`);
-        lines.push(`  防家方: ${defenderScore} 分`);
+        lines.push(`出牌顺序: ${playOrder.map(s => SEAT_NAMES[s]).join(' -> ')}\n`);
+
+        if (trick.throwFailure) {
+          lines.push(`⚠️  ${SEAT_NAMES[trick.throwFailure.seat]} 试图甩牌: ${formatCards(trick.throwFailure.attemptedCards)}`);
+          lines.push(`   甩牌失败: ${trick.throwFailure.reason || '结构被压制'}`);
+          lines.push(`   按规则改出: ${formatCards(trick.throwFailure.fallbackCards)}\n`);
+        }
+
+        for (const p of trick.plays) {
+          const label = p.seat === trick.leader ? `${SEAT_NAMES[p.seat]} (首家)` : SEAT_NAMES[p.seat];
+          lines.push(`${label}: ${formatCards(p.cards)}`);
+        }
+
+        lines.push(`\n🏆 ${SEAT_NAMES[trick.winner]} 赢得此轮！获得 ${trick.points} 分`);
+
+        // Cumulative scores (running total)
+        if (ctx) {
+          const partner = getPartner(dealer);
+          const runningScores = new Map<Seat, number>();
+          for (const s of seats) runningScores.set(s, 0);
+          
+          // Calculate running scores up to this trick
+          for (const t of this.tricks) {
+            if (t.round > trick.round) break;
+            runningScores.set(t.winner, (runningScores.get(t.winner) || 0) + t.points);
+          }
+          
+          const dealerTeamScore = (runningScores.get(dealer) || 0) + (runningScores.get(partner) || 0);
+          const defenderScore = seats
+            .filter(s => s !== dealer && s !== partner)
+            .reduce((sum, s) => sum + (runningScores.get(s) || 0), 0);
+          lines.push(`\n累计得分:`);
+          lines.push(`  庄家方 (${SEAT_NAMES[dealer]} + ${SEAT_NAMES[partner]}): ${dealerTeamScore} 分`);
+          lines.push(`  防家方: ${defenderScore} 分`);
+        }
+
+        // Remaining hands (simplified - not showing full hands for each trick)
+        lines.push(`\n下一轮首家: ${SEAT_NAMES[trick.winner]}`);
+      }
+    }
+
+    // Settlement - only if game has completed
+    if (this.gameResult) {
+      lines.push(`\n${"=".repeat(80)}`);
+      lines.push("--- 结算 ---\n");
+
+      for (const seat of seats) {
+        const score = this.finalScores.get(seat) || 0;
+        const isDealer = seat === dealer;
+        lines.push(`${SEAT_NAMES[seat]}${isDealer ? ' 【庄家】' : ''}: ${score} 分`);
       }
 
-      // Remaining hands (simplified - not showing full hands for each trick)
-      lines.push(`\n下一轮首家: ${SEAT_NAMES[trick.winner]}`);
-    }
-
-    // Settlement
-    lines.push(`\n${"=".repeat(80)}`);
-    lines.push("--- 结算 ---\n");
-
-    for (const seat of seats) {
-      const score = this.finalScores.get(seat) || 0;
-      const isDealer = seat === dealer;
-      lines.push(`${SEAT_NAMES[seat]}${isDealer ? ' 【庄家】' : ''}: ${score} 分`);
-    }
-
-    if (this.gameResult) {
       const partner = getPartner(dealer);
       
       // 抠底信息（始终显示）
