@@ -46,8 +46,8 @@ export interface Player {
   // 炒底阶段
   chooseChaoDi(hand: Card[], level: Rank, state: TrumpState): Card[] | null;
   
-  // 扣底阶段
-  discardKitty(hand: Card[], kitty: Card[], ctx: GameContext): Card[];
+  // 扣底阶段 - 新增seat和dealer参数用于判断是否在庄家组
+  discardKitty(hand: Card[], kitty: Card[], ctx: GameContext, seat?: Seat, dealer?: Seat): Card[];
   
   // 出牌阶段
   playCards(
@@ -399,7 +399,7 @@ export class GameEngine {
           const chaoDiHand = [...(this.state.hands.get(seat) || []), ...this.state.kitty];
           
           // 扣回6张牌
-          const toReturn = player.discardKitty(chaoDiHand, this.state.kitty, this.state.ctx!);
+          const toReturn = player.discardKitty(chaoDiHand, this.state.kitty, this.state.ctx!, seat, this.state.dealer);
           
           // 计算哪些牌被放回底牌（扣底牌）
           let discardedCards: Card[];
