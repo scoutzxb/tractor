@@ -1,6 +1,6 @@
 import type { Seat, Card } from "../../src/core/types";
 import { autoSaveForAllPlayers, autoSaveForSeat } from "../autosave";
-import { smartDiscardKitty } from "../../src/ai/smart-discard";
+import { smartDiscardKittyWithDealerInfo } from "../../src/ai/smart-discard";
 
 const SEATS: Seat[] = ["east", "north", "west", "south"];
 
@@ -52,8 +52,9 @@ function executeChaoDi(
   const hand = state.hands.get(playerSeat) || [];
   const newHand = [...hand, ...receivedKitty];
 
-  // AI discard strategy: use smartDiscardKitty to choose which cards to discard
-  const toDiscard = smartDiscardKitty(newHand, state.ctx!, 6);
+  // AI discard strategy: use smartDiscardKittyWithDealerInfo with seat and dealer info
+  // This allows AI to prioritize non-trump score cards when not in dealer group
+  const toDiscard = smartDiscardKittyWithDealerInfo(newHand, state.ctx!, 6, playerSeat, state.dealer);
   const discardedKitty = toDiscard;
   const remainingHand = newHand.filter(c => !toDiscard.includes(c));
   
