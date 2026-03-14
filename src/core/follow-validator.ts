@@ -304,16 +304,15 @@ function validateChainStructurePriority(
 
   const lead = leadComponents[0];
   const suitEnum = enumerateCards(suitCards, ctx);
-  const followParsed = deriveLeadComponentsForFollow(cards, ctx);
+  const followEnum = enumerateCards(cards, ctx);
 
   if (lead.type === 'tractor') {
-    const needLen = lead.length || Math.floor(lead.cards.length / 2);
-    const canFollowTractor = suitEnum.tractors.some(chain => chain.length >= needLen);
+    // 只要有任何拖拉机就必须跟拖拉机（不管长度是否匹配，因为高牌短拖拉机也大于低牌长拖拉机）
+    const canFollowTractor = suitEnum.tractors.length > 0;
     if (!canFollowTractor) return null;
 
-    const ok = followParsed.length === 1
-      && followParsed[0].type === 'tractor'
-      && (followParsed[0].length || Math.floor(followParsed[0].cards.length / 2)) >= needLen;
+    // 检查是否实际出了拖拉机（手牌中有拖拉机时必须出拖拉机）
+    const ok = followEnum.tractors.length > 0;
 
     if (!ok) {
       return { valid: false, reason: '有拖拉机时必须跟拖拉机' };
@@ -322,13 +321,12 @@ function validateChainStructurePriority(
   }
 
   if (lead.type === 'super_tractor') {
-    const needLen = lead.length || Math.floor(lead.cards.length / 3);
-    const canFollowSuper = suitEnum.superTractors.some(chain => chain.length >= needLen);
+    // 只要有任何超级拖拉机就必须跟超级拖拉机
+    const canFollowSuper = suitEnum.superTractors.length > 0;
     if (!canFollowSuper) return null;
 
-    const ok = followParsed.length === 1
-      && followParsed[0].type === 'super_tractor'
-      && (followParsed[0].length || Math.floor(followParsed[0].cards.length / 3)) >= needLen;
+    // 检查是否实际出了超级拖拉机
+    const ok = followEnum.superTractors.length > 0;
 
     if (!ok) {
       return { valid: false, reason: '有超级拖拉机时必须跟超级拖拉机' };
