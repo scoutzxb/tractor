@@ -145,12 +145,27 @@ export function validateFollowPlay(
   return { valid: true };
 }
 
-function countPairsFromCards(cards: Card[]): number {
-  const counts = countCards(cards);
+function countPairsFromCards(cards: Card[], ctx: GameContext): number {
+  // 使用 parseCards 解析出牌（它会优先识别拖拉机，不会重复计算对子）
+  const parsed = parseCards(cards, ctx);
+  
+  // 统计对子
   let pairs = 0;
-  for (const [, list] of counts) {
-    pairs += Math.floor(list.length / 2);
+  for (const comp of parsed) {
+    if (comp.type === 'pair') {
+      pairs += 1;
+    } else if (comp.type === 'tractor') {
+      // 拖拉机中的对子数 = 拖拉机长度
+      pairs += comp.length || Math.floor(comp.cards.length / 2);
+    } else if (comp.type === 'super_tractor') {
+      // 超级拖拉机可以拆成对子
+      pairs += comp.length || Math.floor(comp.cards.length / 3);
+    } else if (comp.type === 'triple') {
+      // 三张可以拆成1对
+      pairs += 1;
+    }
   }
+  
   return pairs;
 }
 
@@ -176,7 +191,8 @@ function getLeadRequiredPairSlots(leadComponents: ParseResult): number {
 function validatePairStructurePriority(
   cards: Card[],
   leadComponents: ParseResult,
-  suitCards: Card[]
+  suitCards: Card[],
+  ctx: GameContext
 ): FollowValidationResult | null {
   const totalNeed = leadComponents.reduce((sum, c) => sum + c.cards.length, 0);
   if (suitCards.length < totalNeed) return null;
@@ -184,11 +200,11 @@ function validatePairStructurePriority(
   const requiredSlots = getLeadRequiredPairSlots(leadComponents);
   if (requiredSlots <= 0) return null;
 
-  const maxPairsInSuit = countPairsFromCards(suitCards);
+  const maxPairsInSuit = countPairsFromCards(suitCards, ctx);
   const requiredPairs = Math.min(requiredSlots, maxPairsInSuit);
   if (requiredPairs <= 0) return null;
 
-  const selectedPairs = countPairsFromCards(cards);
+  const selectedPairs = countPairsFromCards(cards, ctx);
   if (selectedPairs < requiredPairs) {
     return { valid: false, reason: '跟牌时需优先出尽可能多的对子结构' };
   }
@@ -205,7 +221,7 @@ function buildPairPriorityFollow(
   if (suitCards.length < totalNeeded) return null;
 
   const requiredSlots = getLeadRequiredPairSlots(leadComponents);
-  const maxPairsInSuit = countPairsFromCards(suitCards);
+  const maxPairsInSuit = countPairsFromCards(suitCards, ctx);
   const requiredPairs = Math.min(requiredSlots, maxPairsInSuit);
   if (requiredPairs <= 0) return null;
 
@@ -242,10 +258,10 @@ function buildPairPriorityFollow(
   return [...picked, ...remain.slice(0, needRest)];
 }
 
-function hasRequiredPairCapacity(suitCards: Card[], leadComponents: ParseResult): boolean {
+function hasRequiredPairCapacity(suitCards: Card[], leadComponents: ParseResult, ctx: GameContext): boolean {
   const requiredSlots = getLeadRequiredPairSlots(leadComponents);
   if (requiredSlots <= 0) return true;
-  const maxPairsInSuit = countPairsFromCards(suitCards);
+  const maxPairsInSuit = countPairsFromCards(suitCards, ctx);
   return maxPairsInSuit >= Math.min(requiredSlots, Math.floor(suitCards.length / 2));
 }
 
@@ -261,7 +277,7 @@ function validateStructureMatch(
   const strictChain = validateChainStructurePriority(cards, leadComponents, suitCards, ctx);
   if (strictChain) return strictChain;
 
-  const pairPriority = validatePairStructurePriority(cards, leadComponents, suitCards);
+  const pairPriority = validatePairStructurePriority(cards, leadComponents, suitCards, ctx);
   if (pairPriority) return pairPriority;
 
   const followComponents = deriveLeadComponentsForFollow(cards, ctx);
@@ -287,7 +303,7 @@ function validateStructureMatch(
   }
 
   // 张数够但结构能力不够（例如首家对子而我方同门全是单牌），也应允许
-  if (!hasRequiredPairCapacity(suitCards, leadComponents)) {
+  if (!hasRequiredPairCapacity(suitCards, leadComponents, ctx)) {
     return { valid: true };
   }
   
@@ -317,6 +333,18 @@ function validateChainStructurePriority(
     if (!ok) {
       return { valid: false, reason: '有拖拉机时必须跟拖拉机' };
     }
+    
+    // 检查对子数是否足够：如果手牌中有足够的对子能力，必须出足够的对子数
+    const leadLen = lead.length || Math.floor(lead.cards.length / 2);
+    const requiredPairs = leadLen;  // 需要的对子数 = 拖拉机长度
+    const actualPairs = countPairsFromCards(cards, ctx);  // 实际出的对子数
+    const maxPairs = countPairsFromCards(suitCards, ctx);  // 手牌中最多能出的对子数
+    
+    // 如果手牌能出足够的对子，但实际出的不够，不在这里判断，让 validatePairStructurePriority 处理
+    if (maxPairs >= requiredPairs && actualPairs < requiredPairs) {
+      return null;  // 让后续的对子数检查来处理
+    }
+    
     return { valid: true };
   }
 

@@ -252,7 +252,7 @@ function chooseFillersForPartnerLead(hand: Card[], otherCards: Card[], needFill:
 
     const ap = getCardPointValue(a);
     const bp = getCardPointValue(b);
-    if (ap !== bp) return bp - ap;
+    if (ap !== bp) return ap - bp;
 
     const am = keyCount.get(getCardKey(a)) || 1;
     const bm = keyCount.get(getCardKey(b)) || 1;
@@ -471,6 +471,28 @@ function buildSuperTractorCandidates(
         for (let i = 0; i <= remainingCards.length - remainingNeed; i++) {
           const fillers = remainingCards.slice(i, i + remainingNeed);
           const candidate = [...tCards, ...fillers];
+          if (candidate.length === need) out.push(candidate);
+        }
+      }
+    }
+  }
+
+  // Tractor (same or shorter length) + pair from another tractor (option 7.5)
+  // 关键场景：跟3连拖拉机需要3对，但只有2连拖拉机时，拆另一个拖拉机来补足
+  for (const t1 of tractors) {
+    const t1Len = t1.length || Math.floor(t1.cards.length / 2);
+    const t1Cards = t1.cards.slice(0, t1Len * 2);
+    const remainingNeed = need - t1Cards.length;
+    
+    if (remainingNeed === 2) {
+      // 需要从其他拖拉机拆出1对
+      for (const t2 of tractors) {
+        if (t2 === t1) continue;  // 跳过自己
+        const t2Len = t2.length || Math.floor(t2.cards.length / 2);
+        if (t2Len >= 1) {
+          // 从另一个拖拉机拆出1对
+          const pairFromT2 = t2.cards.slice(0, 2);
+          const candidate = [...t1Cards, ...pairFromT2];
           if (candidate.length === need) out.push(candidate);
         }
       }
@@ -922,6 +944,12 @@ function compareLosingCandidates(
   suitCards: Card[],
   ctx: GameContext
 ): number {
+  // 1. 优先出尽可能多的对子结构（规则要求）
+  const aPairs = countPairsByKey(a);
+  const bPairs = countPairsByKey(b);
+  if (aPairs !== bPairs) return bPairs - aPairs; // 对子数多的优先
+
+  // 2. 拆对惩罚（策略优化）
   const aBreak = getComboBreakPenalty(a, suitCards, ctx);
   const bBreak = getComboBreakPenalty(b, suitCards, ctx);
   if (aBreak !== bBreak) return aBreak - bBreak;
@@ -1063,11 +1091,6 @@ export function followCardsStrategy(
         const ap = getCardPointValue(a);
         const bp = getCardPointValue(b);
         if (ap !== bp) return partnerLeading ? (bp - ap) : (ap - bp);
-
-        const aBreak = (keyCount.get(getCardKey(a)) || 1) > 1 ? 1 : 0;
-        const bBreak = (keyCount.get(getCardKey(b)) || 1) > 1 ? 1 : 0;
-        if (aBreak !== bBreak) return aBreak - bBreak;
-
         return compareCardsForStrategy(a, b, ctx);
       })
       .slice(0, leadCards.length);
