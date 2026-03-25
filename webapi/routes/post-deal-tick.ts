@@ -14,7 +14,14 @@ export async function handlePostDealTick(req: Request, deps: any) {
   const { sessionId, playerSeat } = await req.json();
   const s = sessions.get(sessionId);
   if (!s) return json({ error: "session not found" }, 404);
-  if (s.phase !== "postDeal") return json({ error: "not in postDeal phase" }, 400);
+  if (s.phase !== "postDeal") {
+    return json({
+      ok: true,
+      phase: s.phase,
+      remainingMs: 0,
+      state: summarize(s, playerSeat)
+    });
+  }
 
   const elapsed = Date.now() - (s.postDealStartTime || 0);
   const remaining = Math.max(0, POST_DEAL_WAIT_MS - elapsed);

@@ -213,6 +213,9 @@ export class GameLogger {
       receivedKitty: [...receivedKitty],
       discardedKitty: [...discardedKitty],
     });
+    if (success) {
+      this.kittyCards = [...discardedKitty];
+    }
   }
 
   // Record initial hands after trump is set
@@ -277,6 +280,7 @@ export class GameLogger {
   // Record dealer's kitty handling (what they received and put back)
   recordDealerKitty(seat: Seat, received: Card[], discarded: Card[]): void {
     this.dealerKitty = { seat, received: [...received], discarded: [...discarded] };
+    this.kittyCards = [...discarded];
   }
 
   // Generate the log content

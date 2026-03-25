@@ -298,38 +298,32 @@ export function getChaoDiOptions(session: Session, playerSeat: Seat): ChaoDiOpti
   const small = hand.filter((c) => c.joker === "small");
   const big = hand.filter((c) => c.joker === "big");
 
-  // Three big jokers (highest priority)
-  if (big.length >= 3 && (!trump || trump.priority > 1)) {
+  if (big.length >= 3 && (!trump || trump.priority >= 1)) {
     options.push({ key: `cd-${playerSeat}-big-3`, label: "三大王炒底", cards: big.slice(0, 3) });
   }
 
-  // Three small jokers
-  if (small.length >= 3 && (!trump || trump.priority > 2)) {
+  if (small.length >= 3 && (!trump || trump.priority >= 2)) {
     options.push({ key: `cd-${playerSeat}-small-3`, label: "三小王炒底", cards: small.slice(0, 3) });
   }
 
-  // Three same suit level cards
   for (const suit of ["spade", "heart", "club", "diamond"] as Suit[]) {
     const cards = levelBySuit.get(suit)!;
-    if (cards.length >= 3 && (!trump || trump.priority > 3)) {
+    if (cards.length >= 3 && (!trump || trump.priority >= 3)) {
       options.push({ key: `cd-${playerSeat}-${suit}-3`, label: `三${SUIT_NAMES[suit]}级牌炒底`, cards: cards.slice(0, 3) });
     }
   }
 
-  // Pair of big jokers (priority 4)
-  if (big.length >= 2 && (!trump || trump.priority > 4)) {
+  if (big.length >= 2 && (!trump || trump.priority >= 4)) {
     options.push({ key: `cd-${playerSeat}-big-2`, label: "对大王炒底", cards: big.slice(0, 2) });
   }
 
-  // Pair of small jokers (priority 5)
-  if (small.length >= 2 && (!trump || trump.priority > 5)) {
+  if (small.length >= 2 && (!trump || trump.priority >= 5)) {
     options.push({ key: `cd-${playerSeat}-small-2`, label: "对小王炒底", cards: small.slice(0, 2) });
   }
 
-  // Pair of same suit level cards (priority 6)
   for (const suit of ["spade", "heart", "club", "diamond"] as Suit[]) {
     const cards = levelBySuit.get(suit)!;
-    if (cards.length >= 2 && (!trump || trump.priority > 6)) {
+    if (cards.length >= 2 && (!trump || trump.priority >= 6)) {
       options.push({ key: `cd-${playerSeat}-${suit}-2`, label: `对${SUIT_NAMES[suit]}级牌炒底`, cards: cards.slice(0, 2) });
     }
   }
