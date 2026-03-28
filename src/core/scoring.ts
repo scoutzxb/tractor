@@ -404,7 +404,7 @@ export function resolvePostRoundState(
   const attackTeam = dealerTeam === 'eastWest' ? 'northSouth' : 'eastWest';
 
   let jDemotionApplied = false;
-  if (result.jDemotion) {
+  if (result.jDemotion && result.attackUpgrade > 0) {
     nextTeamLevels[dealerTeam] = '2';
     jDemotionApplied = true;
 
