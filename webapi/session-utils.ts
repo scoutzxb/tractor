@@ -14,9 +14,9 @@ export function deserializeSession(serialized: any, deps: any): Session {
 
   const humanSeats = new Set<Seat>(serialized.humanSeats);
 
-  engine.registerPlayer(new SimpleAI('east', '东'));
+  engine.registerPlayer(humanSeats.has('east') ? makeHumanProxy('east') : new SimpleAI('east', '东'));
   engine.registerPlayer(humanSeats.has('north') ? makeHumanProxy('north') : new SimpleAI('north', '北'));
-  engine.registerPlayer(new SimpleAI('west', '西'));
+  engine.registerPlayer(humanSeats.has('west') ? makeHumanProxy('west') : new SimpleAI('west', '西'));
   engine.registerPlayer(humanSeats.has('south') ? makeHumanProxy('south') : new SimpleAI('south', '南'));
 
   const session: Session = {
@@ -34,7 +34,7 @@ export function deserializeSession(serialized: any, deps: any): Session {
     configuredDealer: serialized.configuredDealer,
     humanSeats,
     playerMode: serialized.playerMode,
-    isMultiplayer: serialized.isMultiplayer,
+    isMultiplayer: serialized.playerMode !== 'single',
     teamLevels: serialized.teamLevels,
     exemptions: serialized.exemptions,
     lastLogIndex: serialized.lastLogIndex,
@@ -67,8 +67,7 @@ export function deserializeSession(serialized: any, deps: any): Session {
   if (serialized.loggerState) {
     session.logger.restoreState(serialized.loggerState);
   }
-  
-  // Always set game start state from session config (handles both new and old autosaves)
+
   session.logger.setGameStartState(serialized.configuredDealer, serialized.teamLevels);
 
   return session;

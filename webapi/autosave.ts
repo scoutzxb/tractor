@@ -6,7 +6,7 @@ import { serializeSession } from './routes/save-game';
 import { deserializeSession } from './session-utils';
 
 const AUTOSAVE_ROOT = path.join(process.cwd(), 'autosaves');
-const PLAYER_MODES: Array<'single' | 'two'> = ['single', 'two'];
+const PLAYER_MODES: Array<'single' | 'two' | 'four'> = ['single', 'two', 'four'];
 
 function ensureAutosaveRoot() {
   if (!fs.existsSync(AUTOSAVE_ROOT)) {
@@ -29,14 +29,14 @@ function getPlayerDir(name: string) {
   return dir;
 }
 
-function getAutosavePath(name: string, mode: 'single' | 'two') {
+function getAutosavePath(name: string, mode: 'single' | 'two' | 'four') {
   return path.join(getPlayerDir(name), `${mode}.json`);
 }
 
 export type AutosaveMetadata = {
   playerName: string;
   playerSeat: Seat;
-  playerMode: 'single' | 'two';
+  playerMode: 'single' | 'two' | 'four';
   phase: Session['phase'];
   updatedAt: string;
 };
@@ -54,7 +54,7 @@ export function autoSaveForSeat(session: Session, seat: Seat) {
   if (!shouldAutoSave(session)) return;
   const player = session.players.get(seat);
   if (!player || !player.name) return;
-  const playerMode = session.playerMode === 'two' ? 'two' : 'single';
+  const playerMode = session.playerMode === 'four' ? 'four' : session.playerMode === 'two' ? 'two' : 'single';
   const filePath = getAutosavePath(player.name, playerMode);
   const payload: AutosaveFile = {
     metadata: {
@@ -94,13 +94,12 @@ export function listPlayerAutosaves(playerName: string) {
         entries.push(payload.metadata);
       }
     } catch {
-      // ignore corrupt files
     }
   }
   return entries;
 }
 
-export function readPlayerAutosave(playerName: string, playerMode: 'single' | 'two'): AutosaveFile | null {
+export function readPlayerAutosave(playerName: string, playerMode: 'single' | 'two' | 'four'): AutosaveFile | null {
   if (!playerName) return null;
   const filePath = path.join(AUTOSAVE_ROOT, sanitizePlayerName(playerName), `${playerMode}.json`);
   if (!fs.existsSync(filePath)) return null;

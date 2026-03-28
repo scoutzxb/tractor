@@ -1,11 +1,11 @@
 /**
- * Tractor Web Service - Two-Player Mode
+ * Tractor Web Service
  * 
  * Route handlers are in webapi/routes/
  * Frontend is in webapp/ (React + Vite)
  * Core engine and AI are in src/
  * 
- * Supports two human players: North and South
+ * Supports single-player, two-player, and four-player remote human games
  */
 
 import { serve } from "bun";
@@ -61,13 +61,13 @@ export type Session = {
   postDealStartTime?: number;
   awaitingDiscard: boolean;
   pendingChaodiSettle: boolean;
-  dealerReceivedKitty?: Card[];  // Store kitty cards dealer received (for logging)
+  dealerReceivedKitty?: Card[];
   mode: "grab" | "normal";
   isGrabMode: boolean;
   configuredLevel: Rank;
   configuredDealer: Seat;
   humanSeats: Set<Seat>;
-  playerMode: 'single' | 'two';
+  playerMode: 'single' | 'two' | 'four';
   isMultiplayer: boolean;
   teamLevels: { eastWest: Rank; northSouth: Rank };
   exemptions: TeamExemptions;
@@ -113,19 +113,13 @@ export type Session = {
     northSouth: Rank;
   };
   dealingCardsLog: Array<{ round: number; cardsBySeat: Map<Seat, Card>; declarations: Array<{ seat: Seat; cards: Card[] }> }>;
-  
-  // Player registration for remote multiplayer
   players: Map<Seat, {
     token: string;
     name: string;
     connectedAt: Date;
     lastSeen: Date;
   }>;
-  
-  // Session creation time for determining which is newer
   createdAt: number;
-  
-  // Periodic autosave tracking
   lastAutosaveTime?: number;
 };
 
@@ -186,9 +180,15 @@ function checkPeriodicAutosave() {
 // ============================================================================
 
 export function makeHumanProxy(seat: Seat = "south") {
+  const seatNames: Record<Seat, string> = {
+    east: "East Player",
+    north: "North Player",
+    west: "West Player",
+    south: "South Player",
+  };
   return {
     seat,
-    name: seat === "north" ? "North Player" : "South Player",
+    name: seatNames[seat],
     chooseTrump: () => null,
     chooseChaoDi: () => null,
     discardKitty: (hand: Card[]) => hand.slice(0, 39),
@@ -528,7 +528,7 @@ function htmlIndex(): string {
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Tractor Game - Two Player Mode</title>
+  <title>Tractor Game - Remote Multiplayer</title>
   <style>
     body { font-family: ui-sans-serif, system-ui; background: #0a0a0a; color: #f4f4f5; padding: 16px; }
     .panel { background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 12px; margin: 10px 0; }
@@ -541,32 +541,27 @@ function htmlIndex(): string {
   </style>
 </head>
 <body>
-  <h2>🚜 Tractor Game - Two Player Mode</h2>
+  <h2>🚜 Tractor Game - Remote Multiplayer</h2>
   <div class="panel">
-    <p class="small">Two human players: North and South. East and West are AI.</p>
+    <p class="small">Supports single-player, two-player, and four-player remote games.</p>
     <p class="small">Build frontend: <code>cd webapp && bun run build</code></p>
   </div>
   <div class="panel">
     <p><strong>Available API Endpoints:</strong></p>
     <ul class="small">
-      <li>POST /api/new-game - Start a new game (two-player mode)</li>
+      <li>POST /api/new-game - Start a new game</li>
       <li>POST /api/join-game - Join an existing game</li>
       <li>POST /api/start-game - Start the game</li>
       <li>POST /api/tick - Deal one round</li>
       <li>POST /api/state - Get current state</li>
-      <li>POST /api/declare-manual - South player declaration</li>
-      <li>POST /api/declare-north - North player declaration</li>
+      <li>POST /api/declare - Generic human declaration</li>
       <li>POST /api/take-kitty - Take the kitty</li>
-      <li>POST /api/discard-manual - South player discard</li>
-      <li>POST /api/discard-north - North player discard</li>
+      <li>POST /api/discard - Generic human discard</li>
       <li>POST /api/run-chaodi - Run chaodi phase</li>
-      <li>POST /api/chao-di-manual - South player chaodi</li>
-      <li>POST /api/chao-di-north - North player chaodi</li>
-      <li>POST /api/chao-di-pass - South player pass chaodi</li>
-      <li>POST /api/chao-di-pass-north - North player pass chaodi</li>
+      <li>POST /api/chao-di - Generic human chaodi</li>
+      <li>POST /api/chao-di-pass-generic - Generic human pass chaodi</li>
       <li>POST /api/run-play - Run AI play phase</li>
-      <li>POST /api/play-human - South player's card play</li>
-      <li>POST /api/play-north - North player's card play</li>
+      <li>POST /api/play - Generic human card play</li>
       <li>POST /api/next-round - Advance to next round</li>
       <li>POST /api/next-game - Start a new game</li>
       <li>POST /api/advance-play - Auto-advance AI players</li>
@@ -934,11 +929,21 @@ async function handlePlayGeneric(req: Request, deps: any, playerSeat: Seat): Pro
   return json({ ok: true, events, winner, points, state: summarize(s, playerSeat) });
 }
 
-async function handlePlayHuman(req: Request, deps: any): Promise<Response> {
-  return handlePlayGeneric(req, deps, "south");
+export async function handlePlayHuman(req: Request, deps: any): Promise<Response> {
+  const body = await req.json();
+  const { playerSeat = "south" } = body;
+  return handlePlayGeneric(
+    new Request(req.url, {
+      method: req.method,
+      headers: req.headers,
+      body: JSON.stringify(body),
+    }),
+    deps,
+    playerSeat
+  );
 }
 
-async function handlePlayNorth(req: Request, deps: any): Promise<Response> {
+export async function handlePlayNorth(req: Request, deps: any): Promise<Response> {
   return handlePlayGeneric(req, deps, "north");
 }
 
@@ -1031,14 +1036,13 @@ async function handleNextGame(req: Request, deps: any): Promise<Response> {
   const { sessions, json, createGameEngine, SimpleAI, makeHumanProxy, id, summarize } = deps;
   const { sessionId, mode, level, dealer, playerMode, playerSeat } = await req.json();
   const oldSession = sessions.get(sessionId);
-  
-  // Determine game settings
+
   let isGrabMode: boolean;
   let newLevel: Rank;
   let newDealer: Seat;
   let newTeamLevels: { eastWest: Rank; northSouth: Rank };
   let newExemptions: TeamExemptions;
-  
+
   if (oldSession && oldSession.gameResult) {
     const result = oldSession.gameResult;
     isGrabMode = result.nextMode === 'grab';
@@ -1058,27 +1062,31 @@ async function handleNextGame(req: Request, deps: any): Promise<Response> {
   const playerM = playerMode || oldSessionPlayerMode;
   const actualPlayerMode = playerM || 'single';
   const engine = createGameEngine(newLevel, newDealer, isGrabMode, Date.now());
-  
-  // Register players based on mode
-  // Default: two-player mode (north and south are human)
-  const humanSeats: Set<Seat> = new Set(actualPlayerMode === 'single' ? ['south'] : ['north', 'south']);
-  
-  engine.registerPlayer(new SimpleAI("east", "东"));
+
+  const humanSeats: Set<Seat> = new Set(
+    actualPlayerMode === 'four'
+      ? ['east', 'north', 'west', 'south']
+      : actualPlayerMode === 'two'
+        ? ['north', 'south']
+        : ['south']
+  );
+
+  engine.registerPlayer(humanSeats.has("east") ? makeHumanProxy("east") : new SimpleAI("east", "东"));
   engine.registerPlayer(humanSeats.has("north") ? makeHumanProxy("north") : new SimpleAI("north", "北"));
-  engine.registerPlayer(new SimpleAI("west", "西"));
+  engine.registerPlayer(humanSeats.has("west") ? makeHumanProxy("west") : new SimpleAI("west", "西"));
   engine.registerPlayer(humanSeats.has("south") ? makeHumanProxy("south") : new SimpleAI("south", "南"));
-  
+
   const deck = engine.prepareDeck();
 
   const newSessionId = id();
-  
+
   const s: Session = {
     id: newSessionId,
     engine,
     deck,
     round: 0,
     done: false,
-    phase: "dealing",
+    phase: actualPlayerMode === 'single' ? "dealing" : "waiting",
     awaitingDiscard: false,
     pendingChaodiSettle: false,
     mode: isGrabMode ? "grab" : "normal",
@@ -1087,6 +1095,7 @@ async function handleNextGame(req: Request, deps: any): Promise<Response> {
     configuredDealer: newDealer,
     humanSeats,
     playerMode: actualPlayerMode,
+    isMultiplayer: actualPlayerMode !== 'single',
     teamLevels: newTeamLevels,
     exemptions: newExemptions,
     lastLogIndex: 0,
@@ -1100,29 +1109,27 @@ async function handleNextGame(req: Request, deps: any): Promise<Response> {
     gameResult: null,
     logger: getLoggerManager("game-logs-web").startNewGame(newSessionId),
     dealingCardsLog: [],
-    players: new Map(), // Will be populated below for two-player mode
+    players: new Map(),
     createdAt: Date.now(),
   };
 
   s.logger.setGrabMode(isGrabMode);
 
-  // For two-player mode, transfer players from old session
-  if (actualPlayerMode === 'two' && oldSession && oldSession.players.size > 0) {
-    // Copy player info from old session
+  if (actualPlayerMode !== 'single' && oldSession && oldSession.players.size > 0) {
     for (const [seat, player] of oldSession.players) {
+      if (!humanSeats.has(seat)) continue;
       s.players.set(seat, {
         ...player,
         connectedAt: new Date(),
         lastSeen: new Date()
       });
-      // Re-register human player
       s.engine.registerPlayer(makeHumanProxy(seat));
     }
-    // Both players are already connected, go directly to dealing
-    s.phase = "dealing";
+    if ([...humanSeats].every(seat => s.players.has(seat))) {
+      s.phase = "dealing";
+    }
   }
-  
-  // For single-player mode, also transfer the south player from old session
+
   if (actualPlayerMode === 'single' && oldSession) {
     const southPlayer = oldSession.players.get('south');
     if (southPlayer) {
@@ -1135,12 +1142,11 @@ async function handleNextGame(req: Request, deps: any): Promise<Response> {
   }
 
   sessions.set(s.id, s);
-  
-  // Delete old session to prevent duplicate autosaves
+
   if (oldSession) {
     sessions.delete(sessionId);
   }
-  
+
   return json(summarize(s, playerSeat));
 }
 
@@ -1288,6 +1294,20 @@ async function handleDeclareGeneric(req: Request, deps: any, playerSeat: Seat): 
   return json({ ok: true, label: option.label, state: summarize(s, playerSeat) });
 }
 
+export async function handleDeclareHuman(req: Request, deps: any): Promise<Response> {
+  const body = await req.json();
+  const { playerSeat = "south" } = body;
+  return handleDeclareGeneric(
+    new Request(req.url, {
+      method: req.method,
+      headers: req.headers,
+      body: JSON.stringify(body),
+    }),
+    deps,
+    playerSeat
+  );
+}
+
 async function handleDeclareNorth(req: Request, deps: any): Promise<Response> {
   return handleDeclareGeneric(req, deps, "north");
 }
@@ -1382,7 +1402,21 @@ async function handleDiscardGeneric(req: Request, deps: any, playerSeat: Seat): 
   }
 }
 
-async function handleDiscardNorth(req: Request, deps: any): Promise<Response> {
+export async function handleDiscardHuman(req: Request, deps: any): Promise<Response> {
+  const body = await req.json();
+  const { playerSeat = "south" } = body;
+  return handleDiscardGeneric(
+    new Request(req.url, {
+      method: req.method,
+      headers: req.headers,
+      body: JSON.stringify(body),
+    }),
+    deps,
+    playerSeat
+  );
+}
+
+export async function handleDiscardNorth(req: Request, deps: any): Promise<Response> {
   return handleDiscardGeneric(req, deps, "north");
 }
 
@@ -1426,6 +1460,10 @@ async function handleRequest(req: Request): Promise<Response> {
     return handleState(req, deps);
   }
 
+  if (url.pathname === "/api/declare" && req.method === "POST") {
+    return handleDeclareHuman(req, deps);
+  }
+
   if (url.pathname === "/api/declare-manual" && req.method === "POST") {
     return handleDeclareManual(req, deps);
   }
@@ -1437,6 +1475,10 @@ async function handleRequest(req: Request): Promise<Response> {
 
   if (url.pathname === "/api/take-kitty" && req.method === "POST") {
     return handleTakeKitty(req, deps);
+  }
+
+  if (url.pathname === "/api/discard" && req.method === "POST") {
+    return handleDiscardHuman(req, deps);
   }
 
   if (url.pathname === "/api/discard-manual" && req.method === "POST") {
@@ -1466,6 +1508,10 @@ async function handleRequest(req: Request): Promise<Response> {
     return handleChaoDiPass(req, deps);
   }
 
+  if (url.pathname === "/api/chao-di-pass-generic" && req.method === "POST") {
+    return handleChaoDiPass(req, deps);
+  }
+
   // North player pass chaodi
   if (url.pathname === "/api/chao-di-pass-north" && req.method === "POST") {
     return handleChaoDiPassNorth(req, deps);
@@ -1475,7 +1521,7 @@ async function handleRequest(req: Request): Promise<Response> {
     return handleRunPlay(req, deps);
   }
 
-  if (url.pathname === "/api/play-human" && req.method === "POST") {
+  if (url.pathname === "/api/play" && req.method === "POST") {
     return handlePlayHuman(req, deps);
   }
   
@@ -1550,12 +1596,14 @@ async function handleRequest(req: Request): Promise<Response> {
 
 const port = Number(process.env.PORT || 8787);
 
-serve({
-  port,
-  fetch: handleRequest,
-});
+if (import.meta.main) {
+  serve({
+    port,
+    fetch: handleRequest,
+  });
 
-console.log(`🚀 Tractor web service running on port ${port}`);
-console.log(`   Two-player mode: North and South are human players`);
-console.log(`   API endpoints available at /api/*`);
-console.log(`   React frontend: cd webapp && bun run build`);
+  console.log(`🚀 Tractor web service running on port ${port}`);
+  console.log(`   Modes: single-player, two-player, four-player remote human games`);
+  console.log(`   API endpoints available at /api/*`);
+  console.log(`   React frontend: cd webapp && bun run dev`);
+}
