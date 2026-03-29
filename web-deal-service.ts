@@ -1497,6 +1497,10 @@ async function handleRequest(req: Request): Promise<Response> {
   if (url.pathname === "/api/chao-di-manual" && req.method === "POST") {
     return handleChaoDiManual(req, deps);
   }
+
+  if (url.pathname === "/api/chao-di" && req.method === "POST") {
+    return handleChaoDiManual(req, deps);
+  }
   
   // North player chaodi
   if (url.pathname === "/api/chao-di-north" && req.method === "POST") {
