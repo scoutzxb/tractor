@@ -349,17 +349,6 @@ export function App(){
   }, [currentMode, sessionId, state?.phase, playerSeat, hostSeat, lang])
 
   useEffect(() => {
-    if (currentMode !== 'single' || !sessionId || !state || state.phase !== 'play') return
-    if (state.currentTurn === playerSeat || state.waitingNextRound) return
-    const timer = window.setTimeout(async () => {
-      const advResp = await post('/api/advance-play', { sessionId, playerSeat })
-      if (advResp?.events) advResp.events.forEach((x: string) => add(`System: ${x}`))
-      if (advResp?.state) setState(advResp.state)
-    }, 50)
-    return () => window.clearTimeout(timer)
-  }, [currentMode, sessionId, state?.phase, state?.currentTurn, state?.waitingNextRound, playerSeat])
-
-  useEffect(() => {
     if (currentMode === 'single' || !sessionId || !state || state.phase !== 'play') return
     if (state.currentTurn === playerSeat || state.waitingNextRound) return
     const pollInterval = window.setInterval(async () => {
@@ -371,19 +360,47 @@ export function App(){
   }, [currentMode, sessionId, state?.phase, state?.currentTurn, state?.waitingNextRound, playerSeat])
 
   useEffect(() => {
-    if (!sessionId || !state || state.phase !== 'play' || !state.waitingNextRound) return
-    const timer = setTimeout(() => {
-      post('/api/next-round', { sessionId, playerSeat }).then((d: any) => {
+    if (currentMode !== 'single' || !sessionId || !state) return
+
+    const runSinglePlayerAutopilot = async () => {
+      if (state.phase === 'postDeal') {
+        await postDealTick()
+        return
+      }
+
+      if (state.phase === 'chaodi') {
+        if ((state.chaoDiOptions || []).length > 0) return
+        const d = await post('/api/run-chaodi', { sessionId, playerSeat })
+        if (d?.error) {
+          add(d.error)
+          return
+        }
+        if (d?.logs) d.logs.forEach((x: string) => add(`Chaodi: ${x}`))
+        if (d?.state) setState(d.state)
+        return
+      }
+
+      if (state.phase === 'play') {
+        if (state.waitingNextRound) {
+          const d = await post('/api/next-round', { sessionId, playerSeat })
+          if (d?.events) d.events.forEach((x: string) => add(`System: ${x}`))
+          if (d?.state) setState(d.state)
+          return
+        }
+        if (state.currentTurn === playerSeat) return
+        const d = await post('/api/advance-play', { sessionId, playerSeat })
         if (d?.events) d.events.forEach((x: string) => add(`System: ${x}`))
         if (d?.state) setState(d.state)
-      })
-    }, 1000)
-    return () => clearTimeout(timer)
-  }, [sessionId, state?.phase, state?.waitingNextRound])
+      }
+    }
+
+    const timer = window.setTimeout(runSinglePlayerAutopilot, 250)
+    return () => window.clearTimeout(timer)
+  }, [currentMode, sessionId, state?.phase, state?.currentTurn, state?.waitingNextRound, state?.chaoDiOptions, playerSeat])
 
   useEffect(() => {
-    if (state?.phase !== 'kitty') hasTakenKitty.current = false
-    if (state?.phase === 'kitty' && state.kittyHolder === playerSeat && state.kittyCards?.length && !hasTakenKitty.current) {
+    if (!sessionId || !state || state.phase !== 'kitty' || !state.kittyHolder || state.kittyHolder !== playerSeat || !state.kittyCards?.length) return
+    if (!hasTakenKitty.current) {
       hasTakenKitty.current = true
       takeKitty()
     }

@@ -298,7 +298,6 @@ export async function handleChaoDiPass(req: Request, deps: any) {
       s.logger.recordInitialHands(state.hands, state.ctx);
     }
 
-    // Flush final chao-di state to log file
     if (s.logger && state.ctx) {
       s.logger.flushToFile(state.ctx, state.dealer, s.teamLevels);
     }
@@ -313,11 +312,27 @@ export async function handleChaoDiPass(req: Request, deps: any) {
     });
   }
 
+  const chaodiResult = processChaodiPolling(s, playerSeat, deps);
+
+  if (chaodiResult.type === 'waiting-for-human') {
+    autoSaveForAllPlayers(s);
+    return json({
+      ok: true,
+      passed: true,
+      logs: chaodiResult.logs,
+      waitingForHuman: true,
+      humanSeat: chaodiResult.humanSeat,
+      message: "已跳过，继续轮询其他玩家",
+      state: summarize(s, playerSeat)
+    });
+  }
+
   autoSaveForAllPlayers(s);
 
   return json({
     ok: true,
     passed: true,
+    logs: chaodiResult.logs,
     message: "已跳过，继续轮询其他玩家",
     state: summarize(s, playerSeat)
   });

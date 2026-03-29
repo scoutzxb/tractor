@@ -1334,7 +1334,16 @@ async function handleDiscardGeneric(req: Request, deps: any, playerSeat: Seat): 
     return json({ error: `${playerSeat} is not a human player` }, 400);
   }
 
-  const hand = state.hands.get(playerSeat) || [];
+  let hand = state.hands.get(playerSeat) || [];
+  if (s.awaitingDiscard && state.kitty.length > 0 && !s.dealerReceivedKitty) {
+    s.dealerReceivedKitty = [...state.kitty];
+  }
+  if (s.awaitingDiscard && state.trumpState.kittyHolder === playerSeat && state.kitty.length > 0 && hand.length <= 39) {
+    hand = [...hand, ...state.kitty];
+    state.hands.set(playerSeat, hand);
+    state.kitty = [];
+  }
+
   const idSet = new Set(cardIds.map((x: any) => Number(x)));
   const toDiscard = hand.filter((c: Card) => idSet.has(c.id));
 
