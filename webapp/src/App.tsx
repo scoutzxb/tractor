@@ -349,20 +349,26 @@ export function App(){
   }, [currentMode, sessionId, state?.phase, playerSeat, hostSeat, lang])
 
   useEffect(() => {
-    if (!sessionId || !state || state.phase !== 'play') return
-    if (state.currentTurn === playerSeat) return
-    const pollInterval = window.setInterval(async () => {
-      const d = await post('/api/state', { sessionId, playerSeat })
-      if (d.error) return
-      if (d.currentTurn !== state.currentTurn || d.waitingNextRound !== state.waitingNextRound || JSON.stringify(d.tablePlays) !== JSON.stringify(state.tablePlays)) {
-        setState(d)
-      }
+    if (currentMode !== 'single' || !sessionId || !state || state.phase !== 'play') return
+    if (state.currentTurn === playerSeat || state.waitingNextRound) return
+    const timer = window.setTimeout(async () => {
       const advResp = await post('/api/advance-play', { sessionId, playerSeat })
       if (advResp?.events) advResp.events.forEach((x: string) => add(`System: ${x}`))
       if (advResp?.state) setState(advResp.state)
-    }, 1500)
+    }, 50)
+    return () => window.clearTimeout(timer)
+  }, [currentMode, sessionId, state?.phase, state?.currentTurn, state?.waitingNextRound, playerSeat])
+
+  useEffect(() => {
+    if (currentMode === 'single' || !sessionId || !state || state.phase !== 'play') return
+    if (state.currentTurn === playerSeat || state.waitingNextRound) return
+    const pollInterval = window.setInterval(async () => {
+      const d = await post('/api/state', { sessionId, playerSeat })
+      if (d.error) return
+      setState(d)
+    }, 1000)
     return () => window.clearInterval(pollInterval)
-  }, [sessionId, state?.phase, state?.currentTurn, playerSeat, state?.waitingNextRound, state?.tablePlays])
+  }, [currentMode, sessionId, state?.phase, state?.currentTurn, state?.waitingNextRound, playerSeat])
 
   useEffect(() => {
     if (!sessionId || !state || state.phase !== 'play' || !state.waitingNextRound) return
@@ -501,7 +507,42 @@ export function App(){
         {state.phase === 'kitty' && state.kittyHolder === playerSeat && state.awaitingDiscard && <div className="panel"><b>{t(lang, 'select6Cards', { count: selected.size })}</b><button onClick={discard}>{t(lang, 'confirmDiscard')}</button></div>}
         {state.phase === 'chaodi' && <div className="panel">{(state.chaoDiOptions || []).length > 0 ? <><div className="matrix">{(state.chaoDiOptions || []).map((o: any) => <button key={o.key} onClick={() => doChaodi(o.key)}>{o.label}</button>)}</div><button onClick={passChaodi} style={{ marginTop: '8px', backgroundColor: '#6b7280' }}>{t(lang, 'abandonChaodi')}</button></> : <div className="small text-gray-600">{t(lang, 'waitingForChaodi')}</div>}</div>}
         {state.phase === 'postDeal' && <div className="panel"><b>{t(lang, 'dealingDone', { seconds: Math.ceil(postDealRemaining / 1000) })}</b><div className="small text-gray-600">{t(lang, 'canDeclareHint')}</div></div>}
-        {state.phase === 'done' && state.gameResult && <div className="panel"><b>{t(lang, 'gameSettleTitle')}</b><div>{t(lang, 'dealerTeam')}: {state.gameResult.dealerTeamScore} | {t(lang, 'defenderTeam')}: {state.gameResult.defenderTeamScore}</div><div>{t(lang, 'nextDealer')}: {t(lang, state.gameResult.nextDealer as any)} | {t(lang, 'nextLevel')}: {state.gameResult.nextLevel} | {t(lang, 'nextMode')}: {t(lang, state.gameResult.nextMode)}</div><div>{countdown}s</div></div>}
+        {state.phase === 'done' && state.gameResult && (
+          <div className="panel" style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%)', border: '2px solid #60a5fa', color: '#fff' }}>
+            <h3 style={{ fontSize: '1.3em', fontWeight: 'bold', color: '#60a5fa', marginBottom: '12px', textAlign: 'center' }}>🎉 {t(lang, 'gameSettleTitle')}</h3>
+            <div style={{ marginBottom: '10px', padding: '10px', background: 'rgba(0,0,0,0.3)', borderRadius: '6px' }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '6px', color: '#93c5fd' }}>📊 {t(lang, 'tableScore')}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>{t(lang, 'dealerTeam')}: <b style={{color:'#fbbf24'}}>{state.gameResult.dealerTeamScore}</b> {t(lang, 'points')}</span>
+                <span>{t(lang, 'defenderTeam')}: <b style={{color:'#fbbf24'}}>{state.gameResult.defenderTeamScore}</b> {t(lang, 'points')}</span>
+              </div>
+            </div>
+            <div style={{ marginBottom: '10px', padding: '10px', background: 'rgba(0,0,0,0.3)', borderRadius: '6px' }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '6px', color: '#93c5fd' }}>🎯 {t(lang, 'kittyDetail')}</div>
+              <div>{t(lang, 'kittyBaseScore')}: <b style={{color:'#fbbf24'}}>{state.gameResult.kittyBaseScore}</b> {t(lang, 'points')}</div>
+              <div>{t(lang, 'isKittyTaken')}: {state.gameResult.isKittyTaken ? `✅ ${t(lang, 'yesKittyTaken')}` : `❌ ${t(lang, 'noKittyTaken')}`}</div>
+              {state.gameResult.isKittyTaken && (
+                <>
+                  <div>{t(lang, 'kittyMultiplier')}: <b style={{color:'#f472b6'}}>×{state.gameResult.kittyMultiplier}</b></div>
+                  <div>{t(lang, 'kittyScore')}: <b style={{color:'#fbbf24'}}>{state.gameResult.kittyScore}</b> {t(lang, 'points')}</div>
+                </>
+              )}
+            </div>
+            <div style={{ marginBottom: '10px', padding: '12px', background: 'rgba(251,191,36,0.2)', borderRadius: '6px', textAlign: 'center', border: '1px solid rgba(251,191,36,0.5)' }}>
+              <div style={{ fontWeight: 'bold', color: '#fbbf24' }}>{t(lang, 'finalScore')}: {t(lang, 'defenderTeam')} <b style={{fontSize:'1.2em'}}>{state.gameResult.totalScore}</b> {t(lang, 'points')}</div>
+            </div>
+            <div style={{ marginBottom: '10px', padding: '12px', background: state.gameResult.winner === 'dealer' ? 'rgba(34,197,94,0.2)' : 'rgba(244,114,182,0.2)', borderRadius: '6px', textAlign: 'center', border: state.gameResult.winner === 'dealer' ? '1px solid rgba(34,197,94,0.5)' : '1px solid rgba(244,114,182,0.5)' }}>
+              <div style={{ fontSize: '1.2em', fontWeight: 'bold', color: state.gameResult.winner === 'dealer' ? '#4ade80' : '#f472b6' }}>
+                🏆 {state.gameResult.winner === 'dealer' ? t(lang, 'dealerWin') : t(lang, 'defenderWin')}
+              </div>
+            </div>
+            <div style={{ padding: '10px', background: 'rgba(96,165,250,0.2)', borderRadius: '6px', textAlign: 'center', border: '1px solid rgba(96,165,250,0.5)' }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '6px', color: '#93c5fd' }}>⏭️ {t(lang, 'nextGameSetting')}</div>
+              <div style={{ color: '#cbd5e1' }}>{t(lang, 'nextDealer')}: <b style={{color:'#fbbf24'}}>{t(lang, state.gameResult.nextDealer as any)}</b> | {t(lang, 'nextLevel')}: <b style={{color:'#fbbf24'}}>{state.gameResult.nextLevel}</b> | {t(lang, 'nextMode')}: <b style={{color:'#fbbf24'}}>{t(lang, state.gameResult.nextMode)}</b></div>
+              <div style={{ fontSize: '1em', color: '#60a5fa', marginTop: '8px', fontWeight: 'bold' }}>⏱️ {countdown}秒后进入下一局...</div>
+            </div>
+          </div>
+        )}
         <div className="panel"><b>{t(lang, 'currentRound')}</b>{ALL_SEATS.map(seat => <div key={seat}><div className="small">{t(lang, seat as any)}</div><div className="cards">{(table[seat] || []).map((c: Card) => <span key={c.id} className={cls(c)}>{txt(c)}</span>)}</div></div>)}</div>
         {showReview && state.lastRoundReview && <div className="panel"><b>{t(lang, 'lastRoundReview', { round: state.lastRoundReview.round })}</b><div className="small">{t(lang, 'winner')}: {state.lastRoundReview.winner} | {t(lang, 'score')}: {state.lastRoundReview.points}</div>{state.lastRoundReview.plays?.map((p: any) => <div key={p.seat}><span className="small">{t(lang, p.seat as any)}</span><span className="cards">{(p.cards || []).map((c: Card) => <span key={c.id} className={cls(c)}>{txt(c)}</span>)}</span></div>)}</div>}
         <div className="panel"><b>{t(lang, 'yourHand', { seat: t(lang, playerSeat as any) })}</b><div className="cards">{sorted.map(c => { const id = String(c.id); const on = selected.has(id); return <span key={id} onClick={() => { const n = new Set(selected); n.has(id) ? n.delete(id) : n.add(id); if (isKittyDiscard && n.size > 6) n.delete(id); setSelected(n) }} className={`${cls(c)} ${on ? 'sel' : ''}`}>{txt(c)}</span> })}</div>{state.phase === 'play' && state.currentTurn === playerSeat && <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}><button onClick={playHuman} disabled={selected.size === 0 || (leadCount > 0 && selected.size !== requiredCount)} style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', padding: '4px 12px', borderRadius: '4px', cursor: 'pointer' }}>{t(lang, 'playSelected')}</button><button onClick={getAISuggestion} style={{ backgroundColor: '#8b5cf6', color: 'white', border: 'none', padding: '4px 12px', borderRadius: '4px', cursor: 'pointer' }}>{t(lang, 'aiSuggestion')}</button></div>}</div>
