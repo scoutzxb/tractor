@@ -227,22 +227,23 @@ export async function handleChaoDiManual(req: Request, deps: any) {
     return json({ error: "canChaoDi rejected by engine" }, 400);
   }
 
-  // Execute chaodi using unified function
-  const result = executeChaoDi(s, playerSeat, target.cards, { chaoDi, createGameContext });
-  if (!result.success) {
-    return json({ error: result.error || "chaodi failed" }, 400);
-  }
+  const receivedKitty = [...state.kitty];
+  state.trumpState = chaoDi(state.trumpState, playerSeat, target.cards, state.level);
+  state.ctx = createGameContext(state.level, state.trumpState);
 
-  // Update log index
+  const hand = state.hands.get(playerSeat) || [];
+  state.hands.set(playerSeat, [...hand, ...receivedKitty]);
+  state.kitty = [];
+
+  s.nextChaodiSeat = getNextSeat(playerSeat);
   s.lastLogIndex = s.engine.getLogs().length;
-
-  // Set phase to kitty for human player to see their new hand
   s.phase = "kitty";
-  s.awaitingDiscard = false; // Already auto-discarded by unified function
+  s.awaitingDiscard = true;
   s.pendingChaodiSettle = true;
+  s.dealerReceivedKitty = receivedKitty;
   autoSaveForSeat(s, playerSeat);
 
-  return json({ ok: true, label: target.label, logs: result.logs, state: summarize(s, playerSeat) });
+  return json({ ok: true, label: target.label, logs: [`${playerSeat} 炒底成功: ${target.label}`], state: summarize(s, playerSeat) });
 }
 
 export async function handleRunChaodi(req: Request, deps: any) {

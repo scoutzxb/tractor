@@ -31,6 +31,12 @@ export async function handleDiscardManual(req: Request, deps: any) {
     return json({ error: result.error }, 400);
   }
 
+  const wasPendingChaodiSettle = !!s.pendingChaodiSettle;
+  if (wasPendingChaodiSettle) {
+    s.pendingChaodiSettle = false;
+    s.phase = "chaodi";
+  }
+
   // Advance to next phase
   const { nextPhase } = advancePhaseAfterKitty(s);
 
