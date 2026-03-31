@@ -942,14 +942,19 @@ function compareLosingCandidates(
   b: Card[],
   partnerLeading: boolean,
   suitCards: Card[],
-  ctx: GameContext
+  ctx: GameContext,
+  requiredPairSlots: number
 ): number {
-  // 1. 优先出尽可能多的对子结构（规则要求）
   const aPairs = countPairsByKey(a);
   const bPairs = countPairsByKey(b);
-  if (aPairs !== bPairs) return bPairs - aPairs; // 对子数多的优先
+  const aCovered = Math.min(aPairs, requiredPairSlots);
+  const bCovered = Math.min(bPairs, requiredPairSlots);
+  if (aCovered !== bCovered) return bCovered - aCovered;
 
-  // 2. 拆对惩罚（策略优化）
+  const aExcess = Math.max(0, aPairs - requiredPairSlots);
+  const bExcess = Math.max(0, bPairs - requiredPairSlots);
+  if (aExcess !== bExcess) return aExcess - bExcess;
+
   const aBreak = getComboBreakPenalty(a, suitCards, ctx);
   const bBreak = getComboBreakPenalty(b, suitCards, ctx);
   if (aBreak !== bBreak) return aBreak - bBreak;
@@ -973,6 +978,8 @@ export function followCardsStrategy(
   ctx: GameContext
 ): Card[] {
   const leadSuit = getPlaySuit(leadCards, ctx);
+  const leadComponents = deriveLeadComponentsForFollowStrategy(leadCards, ctx);
+  const requiredPairSlots = getLeadRequiredPairSlotsForStrategy(leadComponents);
   const suitCards = hand.filter(c => {
     const cls = classifyCard(c, ctx);
     if (leadSuit === 'trump') return cls === 'trump';
@@ -1052,7 +1059,7 @@ export function followCardsStrategy(
       if (canBeat) {
         // 搭档领先时，不要beat，选最小的垫牌
         if (partnerLeading) {
-          return compareLosingCandidates(a, b, partnerLeading, suitCards, ctx);
+          return compareLosingCandidates(a, b, partnerLeading, suitCards, ctx, requiredPairSlots);
         }
         
         if (aWin !== bWin) return aWin ? -1 : 1;
@@ -1064,10 +1071,10 @@ export function followCardsStrategy(
           return preferLargestCover ? (bVal - aVal) : (aVal - bVal);
         }
 
-        return compareLosingCandidates(a, b, partnerLeading, suitCards, ctx);
+        return compareLosingCandidates(a, b, partnerLeading, suitCards, ctx, requiredPairSlots);
       }
 
-      return compareLosingCandidates(a, b, partnerLeading, suitCards, ctx);
+      return compareLosingCandidates(a, b, partnerLeading, suitCards, ctx, requiredPairSlots);
     });
 
     const chosen = candidates[0];

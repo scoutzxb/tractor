@@ -1,11 +1,41 @@
 import { describe, test, expect } from 'bun:test';
 import { followCardsStrategy, leadCardsStrategy, setThrowLeadRate, getThrowLeadRate } from '../src/ai/play-strategy';
+import { validateFollowPlay } from '../src/core/follow-validator';
 import type { Card, GameContext, Seat } from '../src/core/types';
 
 const c = (suit: 'spade'|'heart'|'club'|'diamond', rank: string, id: number): Card => ({ id, suit, rank } as Card);
 
 describe('AI strategy v1 baseline', () => {
   const ctx: GameContext = { level: '2', trumpSuit: 'heart' };
+
+  test('regression: single+triple lead should use one pair plus two singles, not two pairs', () => {
+    const ctxNoTrump: GameContext = { level: '4', trumpSuit: null };
+    const lead = [
+      c('club', 'A', 600), c('club', 'A', 601), c('club', 'A', 602), c('club', '9', 603)
+    ];
+    const current = [{ seat: 'west' as Seat, cards: lead }];
+
+    const eastHand: Card[] = [
+      c('club', 'K', 610), c('club', 'K', 611),
+      c('club', 'Q', 612), c('club', 'Q', 613),
+      c('club', 'J', 614), c('club', '10', 615),
+      c('spade', '3', 616)
+    ];
+
+    const play = followCardsStrategy(eastHand, lead, current, 'east', ctxNoTrump);
+    expect(play.length).toBe(4);
+
+    const valid = validateFollowPlay(play, lead, eastHand, ctxNoTrump);
+    expect(valid.valid).toBe(true);
+
+    const counts = new Map<string, number>();
+    for (const card of play) {
+      const key = `${card.suit}-${card.rank}`;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    const pairCount = Array.from(counts.values()).filter(v => v >= 2).length;
+    expect(pairCount).toBe(1);
+  });
 
   test('opponent-leading two-pair: one-pair fallback should avoid high-point singles', () => {
     const lead = [c('heart','4',500), c('heart','4',501), c('heart','3',502), c('heart','3',503)];
