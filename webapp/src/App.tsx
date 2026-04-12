@@ -246,7 +246,15 @@ export function App(){
 
   const takeKitty = async () => {
     const d = await post('/api/take-kitty', { sessionId, playerSeat })
-    if (d.error) return add(d.error)
+    if (d.error) {
+      add(`Take kitty error: ${d.error}`)
+      // Reset the ref so user can retry if there was a sync issue
+      if (d.error.includes('not kitty holder') || d.error.includes('not set')) {
+        hasTakenKitty.current = false
+        add('You can try again or refresh the page if the issue persists.')
+      }
+      return
+    }
     setSelected(new Set())
     ;(d.logs || []).forEach((x: string) => add(`Chaodi: ${x}`))
     setState(d.state)
@@ -316,6 +324,7 @@ export function App(){
     setMode(d.mode ?? nextMode)
     setLevel(d.level ?? nextLevel)
     setDealer(d.dealer ?? nextDealer)
+    hasTakenKitty.current = false
   }
 
   useEffect(() => {
