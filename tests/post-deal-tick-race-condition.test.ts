@@ -225,4 +225,70 @@ describe("post-deal-tick race condition", () => {
     expect((result as any).phase).toBe("chaodi");
     expect((result as any).error).toBeUndefined();
   });
+
+  it("should enter kitty phase for a human dealer without marking awaitingDiscard before take-kitty", async () => {
+    const session = createMockSession({
+      humanSeats: new Set(["south"]),
+      playerMode: "single",
+      isMultiplayer: false,
+      phase: "postDeal",
+      postDealStartTime: Date.now() - 6000,
+    });
+    const state = session.engine.getState();
+    const deck = session.deck;
+    state.level = "2";
+    state.dealer = "south";
+    state.hands.set("east", deck.slice(0, 39));
+    state.hands.set("north", deck.slice(39, 78));
+    state.hands.set("west", deck.slice(78, 117));
+    state.hands.set("south", deck.slice(117, 156));
+    state.trumpState.currentTrump = {
+      suit: "spade",
+      priority: 7,
+      cards: [{ id: 999001, suit: "spade", rank: "2" }],
+      declarer: "south",
+      level: "2",
+    };
+    state.trumpState.kittyHolder = "south";
+
+    const sessions = new Map([["test-session", session]]);
+    const deps = {
+      sessions,
+      summarize: (s: Session) => {
+        const st: any = s.engine.getState();
+        return {
+          phase: s.phase,
+          kittyHolder: st.trumpState.kittyHolder,
+          awaitingDiscard: s.awaitingDiscard,
+          kittyCount: st.kitty.length,
+          handCounts: {
+            east: (st.hands.get("east") || []).length,
+            north: (st.hands.get("north") || []).length,
+            west: (st.hands.get("west") || []).length,
+            south: (st.hands.get("south") || []).length,
+          },
+        };
+      },
+      json: (data: any, status = 200) => new Response(JSON.stringify(data), { status }),
+      serverLog: () => {},
+    };
+
+    const req = new Request("http://localhost/api/post-deal-tick", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ sessionId: "test-session", playerSeat: "south" }),
+    });
+
+    const response = await handlePostDealTick(req, deps);
+    const result = await response.json();
+
+    expect(response.status).toBe(200);
+    expect((result as any).ok).toBe(true);
+    expect((result as any).phase).toBe("kitty");
+    expect((result as any).state.phase).toBe("kitty");
+    expect((result as any).state.kittyHolder).toBe("south");
+    expect((result as any).state.awaitingDiscard).toBe(false);
+    expect((result as any).state.kittyCount).toBe(6);
+    expect((result as any).state.handCounts.south).toBe(39);
+  });
 });

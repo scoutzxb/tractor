@@ -74,7 +74,6 @@ export async function handlePostDealTick(req: Request, deps: any) {
   if (s.humanSeats.has(kittyHolder)) {
     // Human holds kitty - let them handle it via take-kitty + discard-manual
     s.phase = "kitty";
-    s.awaitingDiscard = true;
     s.dealerReceivedKitty = [...stateAfterFinalize.kitty]; // Store for logging
   } else {
     // AI holds kitty - use unified kitty process with AI discard strategy
