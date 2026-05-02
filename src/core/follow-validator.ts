@@ -258,6 +258,73 @@ function buildPairPriorityFollow(
   return [...picked, ...remain.slice(0, needRest)];
 }
 
+function buildTractorPriorityFollow(
+  leadComponents: ParseResult,
+  suitCards: Card[],
+  totalNeeded: number,
+  ctx: GameContext
+): Card[] | null {
+  if (leadComponents.length !== 1) return null;
+
+  const lead = leadComponents[0];
+  if (lead.type !== 'tractor') return null;
+  if (suitCards.length < totalNeeded) return null;
+
+  const leadLen = lead.length || Math.floor(lead.cards.length / 2);
+  const enumerated = enumerateCards(suitCards, ctx);
+  if (enumerated.tractors.length === 0) return null;
+
+  const requiredPairs = Math.min(leadLen, countPairsFromCards(suitCards, ctx));
+  const pairBuckets = Array.from(countCards(suitCards).values())
+    .filter(list => list.length >= 2)
+    .map(list => list.slice(0, 2))
+    .sort((a, b) => cardCompare(a[0], b[0], ctx));
+
+  const candidates: Card[][] = [];
+
+  for (const chain of enumerated.tractors) {
+    const picked: Card[] = chain.slice(0, Math.min(chain.length, leadLen)).flatMap(c => c.cards);
+    const used = new Set(picked.map(c => c.id));
+
+    for (const pair of pairBuckets) {
+      if (picked.length + 2 > totalNeeded) break;
+      if (pair.some(c => used.has(c.id))) continue;
+      if (countPairsFromCards(picked, ctx) >= requiredPairs) break;
+      picked.push(...pair);
+      used.add(pair[0].id);
+      used.add(pair[1].id);
+    }
+
+    const remaining = suitCards
+      .filter(c => !used.has(c.id))
+      .sort((a, b) => cardCompare(a, b, ctx));
+
+    const needRest = totalNeeded - picked.length;
+    if (needRest < 0 || remaining.length < needRest) continue;
+
+    const candidate = [...picked, ...remaining.slice(0, needRest)];
+    if (candidate.length === totalNeeded) {
+      candidates.push(candidate);
+    }
+  }
+
+  if (candidates.length === 0) return null;
+
+  candidates.sort((a, b) => {
+    const pairDiff = countPairsFromCards(b, ctx) - countPairsFromCards(a, ctx);
+    if (pairDiff !== 0) return pairDiff;
+    const aSorted = [...a].sort((x, y) => cardCompare(x, y, ctx));
+    const bSorted = [...b].sort((x, y) => cardCompare(x, y, ctx));
+    for (let i = 0; i < Math.min(aSorted.length, bSorted.length); i++) {
+      const cmp = cardCompare(aSorted[i], bSorted[i], ctx);
+      if (cmp !== 0) return cmp;
+    }
+    return aSorted.length - bSorted.length;
+  });
+
+  return candidates[0];
+}
+
 function hasRequiredPairCapacity(suitCards: Card[], leadComponents: ParseResult, ctx: GameContext): boolean {
   const requiredSlots = getLeadRequiredPairSlots(leadComponents);
   if (requiredSlots <= 0) return true;
@@ -519,6 +586,11 @@ export function autoCompleteFollow(
     const structured = pickBestStructuredFollow(leadComponents, availableSuit, ctx);
     if (structured && structured.length === totalNeeded) {
       return structured;
+    }
+
+    const tractorPriority = buildTractorPriorityFollow(leadComponents, availableSuit, totalNeeded, ctx);
+    if (tractorPriority && tractorPriority.length === totalNeeded) {
+      return tractorPriority;
     }
 
     const pairPriority = buildPairPriorityFollow(leadComponents, availableSuit, totalNeeded, ctx);
