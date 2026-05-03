@@ -252,7 +252,7 @@ function chooseFillersForPartnerLead(hand: Card[], otherCards: Card[], needFill:
 
     const ap = getCardPointValue(a);
     const bp = getCardPointValue(b);
-    if (ap !== bp) return ap - bp;
+    if (ap !== bp) return bp - ap;
 
     const am = keyCount.get(getCardKey(a)) || 1;
     const bm = keyCount.get(getCardKey(b)) || 1;
@@ -995,6 +995,13 @@ export function followCardsStrategy(
   // partner currently wins and I am void in lead suit: donate safely, avoid burning trumps/jokers
   if (partnerLeading && suitCards.length === 0) {
     return chooseFillersForPartnerLead(hand, hand, leadCards.length, ctx);
+  }
+
+  // partner currently wins and I cannot fully follow suit -> run points to partner after exhausting lead suit
+  if (partnerLeading && suitCards.length > 0 && suitCards.length < leadCards.length) {
+    const needFill = leadCards.length - suitCards.length;
+    const otherCards = hand.filter(c => !suitCards.includes(c));
+    return [...suitCards, ...chooseFillersForPartnerLead(hand, otherCards, needFill, ctx)];
   }
 
   // partner led and I cannot fully follow suit -> donate points without breaking structure
