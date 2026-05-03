@@ -76,6 +76,38 @@ function pickBestStructuredFollow(leadComponents: ParseResult, suitCards: Card[]
   return null;
 }
 
+function maxChainLength(chains: Component[][]): number {
+  return chains.reduce((max, chain) => Math.max(max, chain.length), 0);
+}
+
+function countTriplesFromCards(cards: Card[]): number {
+  let triples = 0;
+  for (const list of countCards(cards).values()) {
+    if (list.length >= 3) triples += 1;
+  }
+  return triples;
+}
+
+function getLeadRequiredTripleSlots(leadComponents: ParseResult): number {
+  let slots = 0;
+  for (const comp of leadComponents) {
+    if (comp.type === 'triple') {
+      slots += 1;
+    } else if (comp.type === 'super_tractor') {
+      slots += comp.length || Math.floor(comp.cards.length / 3);
+    }
+  }
+  return slots;
+}
+
+function maxTractorChainLengthInCards(cards: Card[], ctx: GameContext): number {
+  return maxChainLength(enumerateCards(cards, ctx).tractors);
+}
+
+function maxSuperTractorChainLengthInCards(cards: Card[], ctx: GameContext): number {
+  return maxChainLength(enumerateCards(cards, ctx).superTractors);
+}
+
 /**
  * 垫牌校验结果
  */
@@ -212,6 +244,30 @@ function validatePairStructurePriority(
   return { valid: true };
 }
 
+function validateTripleStructurePriority(
+  cards: Card[],
+  leadComponents: ParseResult,
+  suitCards: Card[],
+  ctx: GameContext
+): FollowValidationResult | null {
+  const totalNeed = leadComponents.reduce((sum, c) => sum + c.cards.length, 0);
+  if (suitCards.length < totalNeed) return null;
+
+  const requiredSlots = getLeadRequiredTripleSlots(leadComponents);
+  if (requiredSlots <= 0) return null;
+
+  const maxTriplesInSuit = countTriplesFromCards(suitCards);
+  const requiredTriples = Math.min(requiredSlots, maxTriplesInSuit);
+  if (requiredTriples <= 0) return null;
+
+  const selectedTriples = countTriplesFromCards(cards);
+  if (selectedTriples < requiredTriples) {
+    return { valid: false, reason: '跟牌时需优先出尽可能多的三张结构' };
+  }
+
+  return { valid: true };
+}
+
 function buildPairPriorityFollow(
   leadComponents: ParseResult,
   suitCards: Card[],
@@ -258,19 +314,108 @@ function buildPairPriorityFollow(
   return [...picked, ...remain.slice(0, needRest)];
 }
 
+function buildSuperTractorPriorityFollow(
+  leadComponents: ParseResult,
+  suitCards: Card[],
+  totalNeeded: number,
+  ctx: GameContext
+): Card[] | null {
+  if (suitCards.length < totalNeeded) return null;
+
+  const leadLen = leadComponents
+    .filter(c => c.type === 'super_tractor')
+    .reduce((max, c) => Math.max(max, c.length || Math.floor(c.cards.length / 3)), 0);
+  if (leadLen <= 0) return null;
+
+  const enumerated = enumerateCards(suitCards, ctx);
+  if (enumerated.superTractors.length === 0) return null;
+
+  const requiredTriples = Math.min(leadLen, countTriplesFromCards(suitCards));
+  const tripleBuckets = Array.from(countCards(suitCards).values())
+    .filter(list => list.length >= 3)
+    .map(list => list.slice(0, 3))
+    .sort((a, b) => cardCompare(a[0], b[0], ctx));
+
+  const candidates: Card[][] = [];
+
+  for (const chain of enumerated.superTractors) {
+    const picked: Card[] = chain.slice(0, Math.min(chain.length, leadLen)).flatMap(c => c.cards);
+    const used = new Set(picked.map(c => c.id));
+
+    for (const triple of tripleBuckets) {
+      if (picked.length + 3 > totalNeeded) break;
+      if (triple.some(c => used.has(c.id))) continue;
+      if (countTriplesFromCards(picked) >= requiredTriples) break;
+      picked.push(...triple);
+      for (const card of triple) used.add(card.id);
+    }
+
+    const remaining = suitCards
+      .filter(c => !used.has(c.id))
+      .sort((a, b) => cardCompare(a, b, ctx));
+
+    const needRest = totalNeeded - picked.length;
+    if (needRest < 0 || remaining.length < needRest) continue;
+
+    const candidate = [...picked, ...remaining.slice(0, needRest)];
+    if (candidate.length === totalNeeded) {
+      candidates.push(candidate);
+    }
+  }
+
+  if (candidates.length === 0) return null;
+
+  candidates.sort((a, b) => {
+    const chainDiff = maxSuperTractorChainLengthInCards(b, ctx) - maxSuperTractorChainLengthInCards(a, ctx);
+    if (chainDiff !== 0) return chainDiff;
+    const tripleDiff = countTriplesFromCards(b) - countTriplesFromCards(a);
+    if (tripleDiff !== 0) return tripleDiff;
+    const aSorted = [...a].sort((x, y) => cardCompare(x, y, ctx));
+    const bSorted = [...b].sort((x, y) => cardCompare(x, y, ctx));
+    for (let i = 0; i < Math.min(aSorted.length, bSorted.length); i++) {
+      const cmp = cardCompare(aSorted[i], bSorted[i], ctx);
+      if (cmp !== 0) return cmp;
+    }
+    return aSorted.length - bSorted.length;
+  });
+
+  return candidates[0];
+}
+
+function buildStructuredFollow(
+  leadComponents: ParseResult,
+  suitCards: Card[],
+  totalNeeded: number,
+  ctx: GameContext
+): Card[] | null {
+  const structured = pickBestStructuredFollow(leadComponents, suitCards, ctx);
+  if (structured && structured.length === totalNeeded) return structured;
+
+  const superPriority = buildSuperTractorPriorityFollow(leadComponents, suitCards, totalNeeded, ctx);
+  if (superPriority && superPriority.length === totalNeeded) return superPriority;
+
+  const tractorPriority = buildTractorPriorityFollow(leadComponents, suitCards, totalNeeded, ctx);
+  if (tractorPriority && tractorPriority.length === totalNeeded) return tractorPriority;
+
+  const pairPriority = buildPairPriorityFollow(leadComponents, suitCards, totalNeeded, ctx);
+  if (pairPriority && pairPriority.length === totalNeeded) return pairPriority;
+
+  return null;
+}
+
 function buildTractorPriorityFollow(
   leadComponents: ParseResult,
   suitCards: Card[],
   totalNeeded: number,
   ctx: GameContext
 ): Card[] | null {
-  if (leadComponents.length !== 1) return null;
-
-  const lead = leadComponents[0];
-  if (lead.type !== 'tractor') return null;
   if (suitCards.length < totalNeeded) return null;
 
-  const leadLen = lead.length || Math.floor(lead.cards.length / 2);
+  const leadLen = leadComponents
+    .filter(c => c.type === 'tractor')
+    .reduce((max, c) => Math.max(max, c.length || Math.floor(c.cards.length / 2)), 0);
+  if (leadLen <= 0) return null;
+
   const enumerated = enumerateCards(suitCards, ctx);
   if (enumerated.tractors.length === 0) return null;
 
@@ -311,6 +456,8 @@ function buildTractorPriorityFollow(
   if (candidates.length === 0) return null;
 
   candidates.sort((a, b) => {
+    const chainDiff = maxTractorChainLengthInCards(b, ctx) - maxTractorChainLengthInCards(a, ctx);
+    if (chainDiff !== 0) return chainDiff;
     const pairDiff = countPairsFromCards(b, ctx) - countPairsFromCards(a, ctx);
     if (pairDiff !== 0) return pairDiff;
     const aSorted = [...a].sort((x, y) => cardCompare(x, y, ctx));
@@ -343,6 +490,9 @@ function validateStructureMatch(
 ): FollowValidationResult {
   const strictChain = validateChainStructurePriority(cards, leadComponents, suitCards, ctx);
   if (strictChain) return strictChain;
+
+  const triplePriority = validateTripleStructurePriority(cards, leadComponents, suitCards, ctx);
+  if (triplePriority) return triplePriority;
 
   const pairPriority = validatePairStructurePriority(cards, leadComponents, suitCards, ctx);
   if (pairPriority) return pairPriority;
@@ -383,49 +533,80 @@ function validateChainStructurePriority(
   suitCards: Card[],
   ctx: GameContext
 ): FollowValidationResult | null {
-  if (leadComponents.length !== 1) return null;
-
-  const lead = leadComponents[0];
   const suitEnum = enumerateCards(suitCards, ctx);
   const followEnum = enumerateCards(cards, ctx);
 
+  const leadTractorLen = leadComponents
+    .filter(c => c.type === 'tractor')
+    .reduce((max, c) => Math.max(max, c.length || Math.floor(c.cards.length / 2)), 0);
+
+  if (leadTractorLen > 0) {
+    const maxSuitChainLen = maxChainLength(suitEnum.tractors);
+    const requiredChainLen = Math.min(leadTractorLen, maxSuitChainLen);
+    if (requiredChainLen > 0) {
+      const actualChainLen = maxChainLength(followEnum.tractors);
+      if (actualChainLen < requiredChainLen) {
+        return { valid: false, reason: '有足够拖拉机长度时必须跟足拖拉机' };
+      }
+    }
+  }
+
+  const leadSuperLen = leadComponents
+    .filter(c => c.type === 'super_tractor')
+    .reduce((max, c) => Math.max(max, c.length || Math.floor(c.cards.length / 3)), 0);
+
+  if (leadSuperLen > 0) {
+    const maxSuitChainLen = maxChainLength(suitEnum.superTractors);
+    const requiredChainLen = Math.min(leadSuperLen, maxSuitChainLen);
+    if (requiredChainLen > 0) {
+      const actualChainLen = maxChainLength(followEnum.superTractors);
+      if (actualChainLen < requiredChainLen) {
+        return { valid: false, reason: '有足够超级拖拉机长度时必须跟足超级拖拉机' };
+      }
+    }
+  }
+
+  if (leadComponents.length !== 1) return null;
+
+  const lead = leadComponents[0];
+
   if (lead.type === 'tractor') {
-    // 只要有任何拖拉机就必须跟拖拉机（不管长度是否匹配，因为高牌短拖拉机也大于低牌长拖拉机）
-    const canFollowTractor = suitEnum.tractors.length > 0;
-    if (!canFollowTractor) return null;
+    const leadLen = lead.length || Math.floor(lead.cards.length / 2);
+    const maxSuitChainLen = maxChainLength(suitEnum.tractors);
+    const requiredChainLen = Math.min(leadLen, maxSuitChainLen);
+    if (requiredChainLen <= 0) return null;
 
-    // 检查是否实际出了拖拉机（手牌中有拖拉机时必须出拖拉机）
-    const ok = followEnum.tractors.length > 0;
-
-    if (!ok) {
-      return { valid: false, reason: '有拖拉机时必须跟拖拉机' };
+    const actualChainLen = maxChainLength(followEnum.tractors);
+    if (actualChainLen < requiredChainLen) {
+      return { valid: false, reason: '有足够拖拉机长度时必须跟足拖拉机' };
     }
     
-    // 检查对子数是否足够：如果手牌中有足够的对子能力，必须出足够的对子数
-    const leadLen = lead.length || Math.floor(lead.cards.length / 2);
-    const requiredPairs = leadLen;  // 需要的对子数 = 拖拉机长度
-    const actualPairs = countPairsFromCards(cards, ctx);  // 实际出的对子数
-    const maxPairs = countPairsFromCards(suitCards, ctx);  // 手牌中最多能出的对子数
-    
-    // 如果手牌能出足够的对子，但实际出的不够，不在这里判断，让 validatePairStructurePriority 处理
-    if (maxPairs >= requiredPairs && actualPairs < requiredPairs) {
-      return null;  // 让后续的对子数检查来处理
+    const requiredPairs = Math.min(leadLen, countPairsFromCards(suitCards, ctx));
+    const actualPairs = countPairsFromCards(cards, ctx);
+    if (actualPairs < requiredPairs) {
+      return { valid: false, reason: '跟拖拉机时需优先出尽可能多的对子结构' };
     }
     
     return { valid: true };
   }
 
   if (lead.type === 'super_tractor') {
-    // 只要有任何超级拖拉机就必须跟超级拖拉机
-    const canFollowSuper = suitEnum.superTractors.length > 0;
-    if (!canFollowSuper) return null;
+    const leadLen = lead.length || Math.floor(lead.cards.length / 3);
+    const maxSuitChainLen = maxChainLength(suitEnum.superTractors);
+    const requiredChainLen = Math.min(leadLen, maxSuitChainLen);
+    if (requiredChainLen <= 0) return null;
 
-    // 检查是否实际出了超级拖拉机
-    const ok = followEnum.superTractors.length > 0;
-
-    if (!ok) {
-      return { valid: false, reason: '有超级拖拉机时必须跟超级拖拉机' };
+    const actualChainLen = maxChainLength(followEnum.superTractors);
+    if (actualChainLen < requiredChainLen) {
+      return { valid: false, reason: '有足够超级拖拉机长度时必须跟足超级拖拉机' };
     }
+
+    const requiredTriples = Math.min(leadLen, countTriplesFromCards(suitCards));
+    const actualTriples = countTriplesFromCards(cards);
+    if (actualTriples < requiredTriples) {
+      return { valid: false, reason: '跟超级拖拉机时需优先出尽可能多的三张结构' };
+    }
+
     return { valid: true };
   }
 
@@ -571,7 +752,16 @@ export function autoCompleteFollow(
   
   // 如果选的牌已经够了
   if (selectedCards.length >= totalNeeded) {
-    return selectedCards.slice(0, totalNeeded);
+    const trimmed = selectedCards.slice(0, totalNeeded);
+    const validation = validateFollowPlay(trimmed, leadCards, hand, ctx);
+    if (validation.valid) return trimmed;
+
+    if (suitCards.length >= totalNeeded) {
+      const structured = buildStructuredFollow(leadComponents, suitCards, totalNeeded, ctx);
+      if (structured) return structured;
+    }
+
+    return trimmed;
   }
   
   // 需要补选
@@ -583,26 +773,23 @@ export function autoCompleteFollow(
 
   // 用枚举解析优先补齐结构（尤其拖拉机）
   if (availableSuit.length >= needed && selectedCards.length === 0) {
-    const structured = pickBestStructuredFollow(leadComponents, availableSuit, ctx);
-    if (structured && structured.length === totalNeeded) {
-      return structured;
-    }
-
-    const tractorPriority = buildTractorPriorityFollow(leadComponents, availableSuit, totalNeeded, ctx);
-    if (tractorPriority && tractorPriority.length === totalNeeded) {
-      return tractorPriority;
-    }
-
-    const pairPriority = buildPairPriorityFollow(leadComponents, availableSuit, totalNeeded, ctx);
-    if (pairPriority && pairPriority.length === totalNeeded) {
-      return pairPriority;
-    }
+    const structured = buildStructuredFollow(leadComponents, availableSuit, totalNeeded, ctx);
+    if (structured) return structured;
   }
   
   if (availableSuit.length >= needed) {
     // 补选最小的同门牌
     const sorted = [...availableSuit].sort((a, b) => cardCompare(a, b, ctx));
-    return [...selectedCards, ...sorted.slice(0, needed)];
+    const candidate = [...selectedCards, ...sorted.slice(0, needed)];
+    const validation = validateFollowPlay(candidate, leadCards, hand, ctx);
+    if (validation.valid) return candidate;
+
+    if (suitCards.length >= totalNeeded) {
+      const structured = buildStructuredFollow(leadComponents, suitCards, totalNeeded, ctx);
+      if (structured) return structured;
+    }
+
+    return candidate;
   }
   
   // 同门牌不够，从其他门补选

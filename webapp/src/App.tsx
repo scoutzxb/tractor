@@ -213,6 +213,10 @@ export function App(){
   const tick = async () => {
     if (!sessionId) return
     const d = await post('/api/tick', { sessionId, playerSeat })
+    if (d.alreadyAdvanced && d.state) {
+      setState(d.state)
+      return
+    }
     if (d.error) {
       if (d.error === 'dealing already done') {
         const stateResp = await post('/api/state', { sessionId, playerSeat })

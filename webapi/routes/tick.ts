@@ -6,8 +6,14 @@ export async function handleTick(req: Request, deps: any) {
   const { sessionId, playerSeat } = await req.json(); // Accept playerSeat
   const s = sessions.get(sessionId);
   if (!s) return deps.json({ error: "session not found" }, 404);
-  if (s.done) return deps.json({ error: "dealing already done" }, 400);
-  if (s.phase !== "dealing") return deps.json({ error: "not in dealing phase" }, 400);
+  if (s.done || s.phase !== "dealing") {
+    return deps.json({
+      ok: true,
+      alreadyAdvanced: true,
+      phase: s.phase,
+      state: summarize(s, playerSeat),
+    });
+  }
 
   s.round += 1;
   s.engine.dealOneRound(s.deck, s.round);

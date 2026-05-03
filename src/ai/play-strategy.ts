@@ -929,12 +929,12 @@ function buildSafeVoidDump(hand: Card[], need: number, ctx: GameContext): Card[]
     .slice(0, need);
 }
 
-function canBeatCurrentWinner(myCards: Card[], winnerCards: Card[], ctx: GameContext): boolean {
+function canBeatCurrentWinner(myCards: Card[], currentPlays: Array<{ seat: Seat; cards: Card[] }>, mySeat: Seat, ctx: GameContext): boolean {
   const win = getWinningPlayCore([
-    { seat: 'east', cards: winnerCards },
-    { seat: 'west', cards: myCards }
+    ...currentPlays,
+    { seat: mySeat, cards: myCards }
   ], ctx);
-  return win.seat === 'west';
+  return win.seat === mySeat;
 }
 
 function compareLosingCandidates(
@@ -1013,7 +1013,7 @@ export function followCardsStrategy(
 
   // single special
   if (!partnerLeading && leadCards.length === 1 && suitCards.length > 0) {
-    const wins = suitCards.filter(c => canBeatCurrentWinner([c], currentWinner.cards, ctx)).sort((a, b) => compareCardsForStrategy(a, b, ctx));
+    const wins = suitCards.filter(c => canBeatCurrentWinner([c], currentPlays, mySeat, ctx)).sort((a, b) => compareCardsForStrategy(a, b, ctx));
     if (wins.length > 0) {
       if (preferLargestCover) return [wins[wins.length - 1]];
       const cnt = new Map<string, number>();
@@ -1027,7 +1027,7 @@ export function followCardsStrategy(
   if (!partnerLeading && suitCards.length === 0) {
     const trumpCards = hand.filter(c => classifyCard(c, ctx) === 'trump');
     const killCandidates = buildCandidatesFromSuit(trumpCards, leadCards, ctx).filter(c => c.length === leadCards.length);
-    const winningKills = killCandidates.filter(c => canBeatCurrentWinner(c, currentWinner.cards, ctx));
+    const winningKills = killCandidates.filter(c => canBeatCurrentWinner(c, currentPlays, mySeat, ctx));
     if (winningKills.length > 0) {
       winningKills.sort((a, b) => {
         const aBreak = getComboBreakPenalty(a, trumpCards, ctx);
@@ -1049,19 +1049,14 @@ export function followCardsStrategy(
   // normal same-suit candidates
   const candidates = buildCandidatesFromSuit(suitCards, leadCards, ctx);
   if (candidates.length > 0) {
-    const canBeat = candidates.some(c => canBeatCurrentWinner(c, currentWinner.cards, ctx));
+    const canBeat = !partnerLeading && candidates.some(c => canBeatCurrentWinner(c, currentPlays, mySeat, ctx));
     candidates.sort((a, b) => {
-      const aWin = canBeatCurrentWinner(a, currentWinner.cards, ctx);
-      const bWin = canBeatCurrentWinner(b, currentWinner.cards, ctx);
+      const aWin = canBeatCurrentWinner(a, currentPlays, mySeat, ctx);
+      const bWin = canBeatCurrentWinner(b, currentPlays, mySeat, ctx);
       const aVal = a.reduce((s, c) => s + getCardValueForStrategy(c, ctx), 0);
       const bVal = b.reduce((s, c) => s + getCardValueForStrategy(c, ctx), 0);
 
       if (canBeat) {
-        // 搭档领先时，不要beat，选最小的垫牌
-        if (partnerLeading) {
-          return compareLosingCandidates(a, b, partnerLeading, suitCards, ctx, requiredPairSlots);
-        }
-        
         if (aWin !== bWin) return aWin ? -1 : 1;
 
         if (aWin && bWin) {
