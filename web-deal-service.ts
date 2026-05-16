@@ -119,6 +119,8 @@ export type Session = {
     connectedAt: Date;
     lastSeen: Date;
   }>;
+  hostSeat?: Seat;
+  nextSessionId?: string;
   createdAt: number;
   lastAutosaveTime?: number;
 };
@@ -148,6 +150,21 @@ export function json(data: unknown, status = 200): Response {
       "access-control-allow-headers": "content-type",
     },
   });
+}
+
+export function requirePlayerAuth(session: Session, playerSeat?: Seat, playerToken?: string): string | null {
+  if (!playerSeat) return "missing player seat";
+  if (!session.humanSeats.has(playerSeat)) return `${playerSeat} is not a human player`;
+  const player = session.players.get(playerSeat);
+  if (!player) return null;
+  if (!playerToken || player.token !== playerToken) return "invalid player token";
+  player.lastSeen = new Date();
+  return null;
+}
+
+export function requireHost(session: Session, playerSeat?: Seat): string | null {
+  if (!session.hostSeat || session.hostSeat === playerSeat) return null;
+  return "only the host can do this";
 }
 
 // ============================================================================
@@ -468,6 +485,9 @@ export function summarize(session: Session, playerSeat?: Seat) {
     // Seat-specific hand
     myHand,
     playerSeat, // Tell the client which seat they are
+    hostSeat: session.hostSeat,
+    nextSessionId: session.nextSessionId,
+    replacementSessionId: session.nextSessionId,
     humanSeats: [...session.humanSeats],
     connectedPlayers: [...session.players.keys()],
     // Seat-specific options
@@ -514,6 +534,8 @@ const deps = {
   serverLog,
   getLoggerManager,
   generateToken,
+  requirePlayerAuth,
+  requireHost,
   seats,
   processChaodiPolling,
 };
@@ -756,10 +778,12 @@ function initPlayPhase(session: Session): void {
 // ============================================================================
 
 async function handleRunPlay(req: Request, deps: any): Promise<Response> {
-  const { sessions, json, summarize } = deps;
-  const { sessionId, playerSeat } = await req.json();
+  const { sessions, json, summarize, requirePlayerAuth } = deps;
+  const { sessionId, playerSeat, playerToken } = await req.json();
   const s = sessions.get(sessionId);
   if (!s) return json({ error: "session not found" }, 404);
+  const authError = requirePlayerAuth?.(s, playerSeat, playerToken);
+  if (authError) return json({ error: authError }, 403);
   if (s.phase !== "play") return json({ error: "not in play phase" }, 400);
 
   const logs: string[] = [];
@@ -808,12 +832,14 @@ async function handleRunPlay(req: Request, deps: any): Promise<Response> {
 
 // Generic play handler for any human player
 async function handlePlayGeneric(req: Request, deps: any, playerSeat: Seat): Promise<Response> {
-  const { sessions, json, summarize } = deps;
-  const { sessionId, cardIds } = await req.json();
+  const { sessions, json, summarize, requirePlayerAuth } = deps;
+  const { sessionId, cardIds, playerToken } = await req.json();
   const s = sessions.get(sessionId);
   if (!s) return json({ error: "session not found" }, 404);
   if (s.phase !== "play") return json({ error: "not in play phase" }, 400);
   if (!s.humanSeats.has(playerSeat)) return json({ error: `${playerSeat} is not a human player` }, 400);
+  const authError = requirePlayerAuth?.(s, playerSeat, playerToken);
+  if (authError) return json({ error: authError }, 403);
 
   const state = s.engine.getState();
   
@@ -949,12 +975,14 @@ export async function handlePlayNorth(req: Request, deps: any): Promise<Response
 
 // AI Suggestion Handler - Suggests cards for human players using AI strategy
 async function handleAISuggestion(req: Request, deps: any): Promise<Response> {
-  const { sessions, json, summarize } = deps;
-  const { sessionId, playerSeat } = await req.json();
+  const { sessions, json, summarize, requirePlayerAuth } = deps;
+  const { sessionId, playerSeat, playerToken } = await req.json();
   const s = sessions.get(sessionId);
   if (!s) return json({ error: "session not found" }, 404);
   if (s.phase !== "play") return json({ error: "not in play phase" }, 400);
   if (!s.humanSeats.has(playerSeat)) return json({ error: `${playerSeat} is not a human player` }, 400);
+  const authError = requirePlayerAuth?.(s, playerSeat, playerToken);
+  if (authError) return json({ error: authError }, 403);
 
   const state = s.engine.getState();
   
@@ -1008,11 +1036,13 @@ async function handleAISuggestion(req: Request, deps: any): Promise<Response> {
 }
 
 async function handleNextRound(req: Request, deps: any): Promise<Response> {
-  const { sessions, json, summarize } = deps;
-  const { sessionId, playerSeat } = await req.json();
+  const { sessions, json, summarize, requirePlayerAuth } = deps;
+  const { sessionId, playerSeat, playerToken } = await req.json();
   const s = sessions.get(sessionId);
   if (!s) return json({ error: "session not found" }, 404);
   if (s.phase !== "play") return json({ error: "not in play phase" }, 400);
+  const authError = requirePlayerAuth?.(s, playerSeat, playerToken);
+  if (authError) return json({ error: authError }, 403);
 
   s.waitingNextRound = false;
   s.currentTrick = []; // 1秒后再清空，让前端可以显示本轮的牌
@@ -1033,9 +1063,22 @@ async function handleNextRound(req: Request, deps: any): Promise<Response> {
 }
 
 async function handleNextGame(req: Request, deps: any): Promise<Response> {
-  const { sessions, json, createGameEngine, SimpleAI, makeHumanProxy, id, summarize } = deps;
-  const { sessionId, mode, level, dealer, playerMode, playerSeat } = await req.json();
+  const { sessions, json, createGameEngine, SimpleAI, makeHumanProxy, id, summarize, requirePlayerAuth, requireHost } = deps;
+  const { sessionId, mode, level, dealer, playerMode, playerSeat, playerToken } = await req.json();
   const oldSession = sessions.get(sessionId);
+
+  if (oldSession) {
+    const authError = requirePlayerAuth?.(oldSession, playerSeat, playerToken);
+    if (authError) return json({ error: authError }, 403);
+    const hostError = requireHost?.(oldSession, playerSeat);
+    if (hostError) return json({ error: hostError }, 403);
+    if (oldSession.nextSessionId) {
+      const existing = sessions.get(oldSession.nextSessionId);
+      if (existing) {
+        return json({ ...summarize(existing, playerSeat), replacementSessionId: existing.id });
+      }
+    }
+  }
 
   let isGrabMode: boolean;
   let newLevel: Rank;
@@ -1077,7 +1120,6 @@ async function handleNextGame(req: Request, deps: any): Promise<Response> {
   engine.registerPlayer(humanSeats.has("south") ? makeHumanProxy("south") : new SimpleAI("south", "南"));
 
   const deck = engine.prepareDeck();
-
   const newSessionId = id();
 
   const s: Session = {
@@ -1110,6 +1152,7 @@ async function handleNextGame(req: Request, deps: any): Promise<Response> {
     logger: getLoggerManager("game-logs-web").startNewGame(newSessionId),
     dealingCardsLog: [],
     players: new Map(),
+    hostSeat: oldSession?.hostSeat || playerSeat,
     createdAt: Date.now(),
   };
 
@@ -1142,19 +1185,18 @@ async function handleNextGame(req: Request, deps: any): Promise<Response> {
   }
 
   sessions.set(s.id, s);
+  if (oldSession) oldSession.nextSessionId = s.id;
 
-  if (oldSession) {
-    sessions.delete(sessionId);
-  }
-
-  return json(summarize(s, playerSeat));
+  return json({ ...summarize(s, playerSeat), replacementSessionId: s.id });
 }
 
 async function handleAdvancePlay(req: Request, deps: any): Promise<Response> {
-  const { sessions, json, summarize } = deps;
-  const { sessionId, playerSeat } = await req.json();
+  const { sessions, json, summarize, requirePlayerAuth } = deps;
+  const { sessionId, playerSeat, playerToken } = await req.json();
   const s = sessions.get(sessionId);
   if (!s) return json({ error: "session not found" }, 404);
+  const authError = requirePlayerAuth?.(s, playerSeat, playerToken);
+  if (authError) return json({ error: authError }, 403);
   if (s.phase !== "play") return json({ ok: true, events: [], state: summarize(s, playerSeat) });
 
   const events: string[] = [];
@@ -1270,13 +1312,15 @@ async function handleAdvancePlay(req: Request, deps: any): Promise<Response> {
 // ============================================================================
 
 async function handleDeclareGeneric(req: Request, deps: any, playerSeat: Seat): Promise<Response> {
-  const { sessions, json, summarize, getDeclareOptions } = deps;
-  const { sessionId, key } = await req.json();
+  const { sessions, json, summarize, getDeclareOptions, requirePlayerAuth } = deps;
+  const { sessionId, key, playerToken } = await req.json();
   const s = sessions.get(sessionId);
   if (!s) return json({ error: "session not found" }, 404);
   // 允许在dealing和postDeal阶段亮牌
   if (s.phase !== "dealing" && s.phase !== "postDeal") return json({ error: "not in dealing or postDeal phase" }, 400);
   if (!s.humanSeats.has(playerSeat)) return json({ error: `${playerSeat} is not a human player` }, 400);
+  const authError = requirePlayerAuth?.(s, playerSeat, playerToken);
+  if (authError) return json({ error: authError }, 403);
 
   const options = getDeclareOptions(s, playerSeat);
   const option = options.find((o: any) => o.key === key);
@@ -1317,8 +1361,8 @@ async function handleDeclareNorth(req: Request, deps: any): Promise<Response> {
 // ============================================================================
 
 async function handleDiscardGeneric(req: Request, deps: any, playerSeat: Seat): Promise<Response> {
-  const { sessions, json, summarize, getChaoDiOptions, canChaoDi, chaoDi, createGameContext, processChaodiPolling } = deps;
-  const { sessionId, cardIds } = await req.json();
+  const { sessions, json, summarize, getChaoDiOptions, canChaoDi, chaoDi, createGameContext, processChaodiPolling, requirePlayerAuth } = deps;
+  const { sessionId, cardIds, playerToken } = await req.json();
   const s = sessions.get(sessionId);
   if (!s) return json({ error: "session not found" }, 404);
   if (s.phase !== "kitty") return json({ error: "not in kitty phase" }, 400);
@@ -1333,6 +1377,8 @@ async function handleDiscardGeneric(req: Request, deps: any, playerSeat: Seat): 
   if (!s.humanSeats.has(playerSeat)) {
     return json({ error: `${playerSeat} is not a human player` }, 400);
   }
+  const authError = requirePlayerAuth?.(s, playerSeat, playerToken);
+  if (authError) return json({ error: authError }, 403);
 
   let hand = state.hands.get(playerSeat) || [];
   if (s.awaitingDiscard && state.kitty.length > 0 && !s.dealerReceivedKitty) {

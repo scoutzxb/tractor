@@ -3,9 +3,11 @@ import { autoSaveForAllPlayers } from "../autosave";
 
 export async function handleTick(req: Request, deps: any) {
   const { sessions, declarationOrder, summarize, SUIT_NAMES } = deps;
-  const { sessionId, playerSeat } = await req.json(); // Accept playerSeat
+  const { sessionId, playerSeat, playerToken } = await req.json(); // Accept playerSeat
   const s = sessions.get(sessionId);
   if (!s) return deps.json({ error: "session not found" }, 404);
+  const authError = deps.requirePlayerAuth?.(s, playerSeat, playerToken);
+  if (authError) return deps.json({ error: authError }, 403);
   if (s.done || s.phase !== "dealing") {
     return deps.json({
       ok: true,
@@ -33,7 +35,7 @@ export async function handleTick(req: Request, deps: any) {
   }
 
   for (const seat of order) {
-    if (seat === "south") continue;
+    if (s.humanSeats.has(seat)) continue;
     // Re-fetch state to get updated trumpState after each declaration
     const currentState = s.engine.getState();
     const hand = currentState.hands.get(seat) || [];

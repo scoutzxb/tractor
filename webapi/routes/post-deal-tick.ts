@@ -6,14 +6,16 @@ import {
 } from "../kitty-utils";
 
 // 发牌后等待阶段的tick处理
-// 5秒后自动进入下一阶段（庄家拿底牌扣底牌）
-const POST_DEAL_WAIT_MS = 5000;
+// 15秒后自动进入下一阶段（庄家拿底牌扣底牌）
+const POST_DEAL_WAIT_MS = 15000;
 
 export async function handlePostDealTick(req: Request, deps: any) {
   const { sessions, summarize, json, serverLog } = deps;
-  const { sessionId, playerSeat } = await req.json();
+  const { sessionId, playerSeat, playerToken } = await req.json();
   const s = sessions.get(sessionId);
   if (!s) return json({ error: "session not found" }, 404);
+  const authError = deps.requirePlayerAuth?.(s, playerSeat, playerToken);
+  if (authError) return json({ error: authError }, 403);
   if (s.phase !== "postDeal") {
     return json({
       ok: true,
@@ -26,7 +28,7 @@ export async function handlePostDealTick(req: Request, deps: any) {
   const elapsed = Date.now() - (s.postDealStartTime || 0);
   const remaining = Math.max(0, POST_DEAL_WAIT_MS - elapsed);
 
-  // 如果还没到5秒，返回剩余时间
+  // 如果还没到15秒，返回剩余时间
   if (remaining > 0) {
     return json({
       ok: true,
@@ -36,7 +38,7 @@ export async function handlePostDealTick(req: Request, deps: any) {
     });
   }
 
-  // 5秒已过，进入下一阶段
+  // 15秒已过，进入下一阶段
   s.engine.setKitty(s.deck);
   s.engine.finalizeTrumpPhase();
   s.done = true;

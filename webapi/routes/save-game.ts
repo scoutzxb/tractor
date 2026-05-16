@@ -49,6 +49,8 @@ export function serializeSession(session: Session): any {
         lastSeen: p.lastSeen
       }
     ])),
+    hostSeat: session.hostSeat,
+    nextSessionId: session.nextSessionId,
     loggedTeamLevels: session.loggedTeamLevels,
     loggerState: session.logger?.exportState ? session.logger.exportState() : null,
     engineState: session.engine.getSerializableState(),
@@ -58,12 +60,14 @@ export function serializeSession(session: Session): any {
 
 export async function handleSaveGame(req: Request, deps: any) {
   const { sessions, json } = deps;
-  const { sessionId, saveName } = await req.json();
+  const { sessionId, saveName, playerSeat, playerToken } = await req.json();
   
   const session = sessions.get(sessionId);
   if (!session) {
     return json({ error: 'Session not found' }, 404);
   }
+  const authError = deps.requirePlayerAuth?.(session, playerSeat, playerToken);
+  if (authError) return json({ error: authError }, 403);
   
   const serialized = serializeSession(session);
   const filename = saveName || `save_${sessionId}_${Date.now()}.json`;
@@ -115,8 +119,15 @@ export async function handleListSaves(req: Request, deps: any) {
 
 export async function handleDeleteSave(req: Request, deps: any) {
   const { json } = deps;
-  const { filename } = await req.json();
+  const { filename, sessionId, playerSeat, playerToken } = await req.json();
   
+  if (sessionId) {
+    const session = deps.sessions?.get(sessionId);
+    if (session) {
+      const authError = deps.requirePlayerAuth?.(session, playerSeat, playerToken);
+      if (authError) return json({ error: authError }, 403);
+    }
+  }
   const filepath = path.join(SAVES_DIR, filename);
   
   if (!fs.existsSync(filepath)) {

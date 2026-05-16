@@ -213,9 +213,11 @@ export function processChaodiPolling(
 
 export async function handleChaoDiManual(req: Request, deps: any) {
   const { sessions, json, summarize, getChaoDiOptions, canChaoDi, chaoDi, createGameContext } = deps;
-  const { sessionId, key, playerSeat } = await req.json();
+  const { sessionId, key, playerSeat, playerToken } = await req.json();
   const s = sessions.get(sessionId);
   if (!s) return json({ error: "session not found" }, 404);
+  const authError = deps.requirePlayerAuth?.(s, playerSeat, playerToken);
+  if (authError) return json({ error: authError }, 403);
   if (s.phase !== "chaodi") return json({ error: "not in chaodi phase" }, 400);
 
   const opts = getChaoDiOptions(s, playerSeat);
@@ -248,9 +250,11 @@ export async function handleChaoDiManual(req: Request, deps: any) {
 
 export async function handleRunChaodi(req: Request, deps: any) {
   const { sessions, json, summarize } = deps;
-  const { sessionId, playerSeat } = await req.json();
+  const { sessionId, playerSeat, playerToken } = await req.json();
   const s = sessions.get(sessionId);
   if (!s) return json({ error: "session not found" }, 404);
+  const authError = deps.requirePlayerAuth?.(s, playerSeat, playerToken);
+  if (authError) return json({ error: authError }, 403);
   if (s.phase !== "chaodi") return json({ error: "not in chaodi phase" }, 400);
 
   const result = processChaodiPolling(s, playerSeat, deps);
@@ -274,9 +278,11 @@ export async function handleRunChaodi(req: Request, deps: any) {
 
 export async function handleChaoDiPass(req: Request, deps: any) {
   const { sessions, json, summarize, getChaoDiOptions } = deps;
-  const { sessionId, playerSeat } = await req.json();
+  const { sessionId, playerSeat, playerToken } = await req.json();
   const s = sessions.get(sessionId);
   if (!s) return json({ error: "session not found" }, 404);
+  const authError = deps.requirePlayerAuth?.(s, playerSeat, playerToken);
+  if (authError) return json({ error: authError }, 403);
   if (s.phase !== "chaodi") return json({ error: "not in chaodi phase" }, 400);
 
   const options = getChaoDiOptions(s, playerSeat);

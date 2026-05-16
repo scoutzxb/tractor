@@ -2,9 +2,11 @@ import { autoSaveForSeat } from "../autosave";
 
 export async function handleTakeKitty(req: Request, deps: any) {
   const { sessions, json, summarize } = deps;
-  const { sessionId, playerSeat } = await req.json();
+  const { sessionId, playerSeat, playerToken } = await req.json();
   const s = sessions.get(sessionId);
   if (!s) return json({ error: "session not found" }, 404);
+  const authError = deps.requirePlayerAuth?.(s, playerSeat, playerToken);
+  if (authError) return json({ error: authError }, 403);
   if (s.phase !== "kitty") return json({ error: "not in kitty phase" }, 400);
   
   const state = s.engine.getState();

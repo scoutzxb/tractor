@@ -6,7 +6,8 @@ describe('regression: single-player UI auto-advance', () => {
     const source = readFileSync('/home/workspace/tractor/webapp/src/App.tsx', 'utf-8');
     expect(source).toContain("if (currentMode !== 'single' || !sessionId || !state) return");
     expect(source).toContain("if (state.phase === 'play') {");
-    expect(source).toContain("if (state.currentTurn === playerSeat || state.waitingNextRound) return");
+    expect(source).toContain("if (state.waitingNextRound) {");
+    expect(source).toContain("if (state.currentTurn === playerSeat) return");
     expect(source).toContain("/api/advance-play");
   });
 });

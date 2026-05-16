@@ -124,11 +124,11 @@ export function App(){
   const currentMode: PlayerMode = (state?.playerMode || playerMode) as PlayerMode
   const requiredSeats: Seat[] = currentMode === 'four' ? ALL_SEATS : currentMode === 'two' ? ['north','south'] : ['south']
   const seatChoicesForCreate: Seat[] = playerMode === 'four' ? ALL_SEATS : playerMode === 'two' ? ['north','south'] : ['south']
-  const isHost = playerSeat === hostSeat
+  const isHost = playerSeat === (state?.hostSeat || hostSeat)
 
   const saveGame = async (saveName?: string) => {
     if (!sessionId) return
-    const d = await post('/api/save-game', { sessionId, saveName })
+    const d = await post('/api/save-game', { sessionId, saveName, playerSeat, playerToken })
     add(d.ok ? (d.message || t(lang, 'gameSaved')) : (d.error || t(lang, 'saveFailed')))
   }
 
@@ -190,7 +190,7 @@ export function App(){
     setSessionId(d.sessionId)
     setPlayerToken(joinResp.playerToken)
     setPlayerSeat(createSeat)
-    setHostSeat(createSeat)
+    setHostSeat(joinResp.hostSeat || createSeat)
     setState(joinResp.state)
     setView('game')
     setLogs([playerMode === 'single' ? `${t(lang,'singleMode')} - ${t(lang, createSeat)}` : `${t(lang,'gameFlowStep1')} (ID: ${d.sessionId})`])
@@ -205,6 +205,7 @@ export function App(){
     setPlayerToken(d.playerToken)
     setPlayerSeat(d.playerSeat)
     if (d.playerMode) setPlayerMode(d.playerMode)
+    setHostSeat(d.hostSeat || d.state?.hostSeat || playerSeat)
     setState(d.state)
     setView('game')
     setLogs([`${t(lang, d.playerMode === 'four' ? 'fourMode' : d.playerMode === 'two' ? 'twoMode' : 'singleMode')} - ${t(lang, d.playerSeat as any)}`])
@@ -212,14 +213,14 @@ export function App(){
 
   const tick = async () => {
     if (!sessionId) return
-    const d = await post('/api/tick', { sessionId, playerSeat })
+    const d = await post('/api/tick', { sessionId, playerSeat, playerToken })
     if (d.alreadyAdvanced && d.state) {
       setState(d.state)
       return
     }
     if (d.error) {
       if (d.error === 'dealing already done') {
-        const stateResp = await post('/api/state', { sessionId, playerSeat })
+        const stateResp = await post('/api/state', { sessionId, playerSeat, playerToken })
         if (!stateResp.error) {
           setState(stateResp)
           add(stateResp.phase === 'postDeal' ? t(lang, 'dealingDoneNotify') : t(lang, 'dealingDoneShort'))
@@ -234,14 +235,14 @@ export function App(){
 
   const postDealTick = async () => {
     if (!sessionId) return
-    const d = await post('/api/post-deal-tick', { sessionId, playerSeat })
+    const d = await post('/api/post-deal-tick', { sessionId, playerSeat, playerToken })
     if (d.error) return add(d.error)
     setPostDealRemaining(d.remainingMs > 0 ? d.remainingMs : 0)
     setState(d.state)
   }
 
   const declare = async (key: string) => {
-    const d = await post('/api/declare', { sessionId, key, playerSeat })
+    const d = await post('/api/declare', { sessionId, key, playerSeat, playerToken })
     if (d.error) return add(d.error)
     add(`${t(lang, 'declareOptions')}: ${d.label}`)
     setState(d.state)
@@ -249,7 +250,7 @@ export function App(){
   }
 
   const takeKitty = async () => {
-    const d = await post('/api/take-kitty', { sessionId, playerSeat })
+    const d = await post('/api/take-kitty', { sessionId, playerSeat, playerToken })
     if (d.error) {
       add(`Take kitty error: ${d.error}`)
       // Reset the ref so user can retry if there was a sync issue
@@ -266,7 +267,7 @@ export function App(){
 
   const discard = async () => {
     if (selected.size !== 6) return add(t(lang, 'select6Cards', { count: selected.size }))
-    const d = await post('/api/discard', { sessionId, cardIds: [...selected], playerSeat })
+    const d = await post('/api/discard', { sessionId, cardIds: [...selected], playerSeat, playerToken })
     if (d.error) return add(d.error)
     setSelected(new Set())
     ;(d.logs || []).forEach((x: string) => add(`Chaodi: ${x}`))
@@ -274,7 +275,7 @@ export function App(){
   }
 
   const passChaodi = async () => {
-    const d = await post('/api/chao-di-pass-generic', { sessionId, playerSeat })
+    const d = await post('/api/chao-di-pass-generic', { sessionId, playerSeat, playerToken })
     if (d.error) return add(d.error)
     ;(d.logs || []).forEach((x: string) => add(`Chaodi: ${x}`))
     setState(d.state)
@@ -282,7 +283,7 @@ export function App(){
   }
 
   const doChaodi = async (key: string) => {
-    const d = await post('/api/chao-di', { sessionId, key, playerSeat })
+    const d = await post('/api/chao-di', { sessionId, key, playerSeat, playerToken })
     if (d.error) return add(d.error)
     add(`Chaodi: ${d.label}`)
     setState(d.state)
@@ -297,7 +298,7 @@ export function App(){
     if (state.phase === 'play' && state.currentTurn === playerSeat && leadCount > 0 && safe.length !== requiredCount) {
       return add(t(lang, 'cardsRequired', { required: requiredCount, count: safe.length }))
     }
-    const d = await post('/api/play', { sessionId, cardIds: safe, playerSeat })
+    const d = await post('/api/play', { sessionId, cardIds: safe, playerSeat, playerToken })
     if (d.error) return add(d.error)
     setSelected(new Set())
     ;(d.events || []).forEach((x: string) => add(`System: ${x}`))
@@ -307,7 +308,7 @@ export function App(){
 
   const getAISuggestion = async () => {
     if (!state) return
-    const d = await post('/api/ai-suggestion', { sessionId, playerSeat })
+    const d = await post('/api/ai-suggestion', { sessionId, playerSeat, playerToken })
     if (d.error) return add(d.error)
     if (d.suggestedCardIds?.length) {
       setSelected(new Set(d.suggestedCardIds.map(String)))
@@ -320,9 +321,9 @@ export function App(){
     const nextMode = state?.gameResult?.nextMode ?? mode
     const nextLevel = state?.gameResult?.nextLevel ?? level
     const nextDealer = state?.gameResult?.nextDealer ?? dealer
-    const d = await post('/api/next-game', { sessionId, mode: nextMode, level: nextLevel, dealer: nextDealer, playerMode: currentMode, playerSeat })
+    const d = await post('/api/next-game', { sessionId, mode: nextMode, level: nextLevel, dealer: nextDealer, playerMode: currentMode, playerSeat, playerToken })
     if (d.error) return add(d.error)
-    setSessionId(d.sessionId)
+    setSessionId(d.replacementSessionId || d.sessionId)
     setState(d)
     setSelected(new Set())
     setMode(d.mode ?? nextMode)
@@ -332,9 +333,17 @@ export function App(){
   }
 
   useEffect(() => {
-    if (state?.phase === 'dealing') timerRef.current = window.setInterval(() => { tick() }, 500)
+    if (state?.phase !== 'dealing' || !sessionId) return
+    timerRef.current = window.setInterval(async () => {
+      if (currentMode === 'single' || isHost) {
+        await tick()
+        return
+      }
+      const d = await post('/api/state', { sessionId, playerSeat, playerToken })
+      if (!d.error) setState(d)
+    }, 500)
     return () => { if (timerRef.current) window.clearInterval(timerRef.current) }
-  }, [state?.phase, sessionId])
+  }, [state?.phase, sessionId, currentMode, isHost, playerSeat, playerToken])
 
   useEffect(() => {
     if (!state || state.phase !== 'postDeal' || !sessionId) return
@@ -345,7 +354,7 @@ export function App(){
   useEffect(() => {
     if (currentMode === 'single' || !sessionId || !state || state.phase !== 'waiting') return
     const pollInterval = window.setInterval(async () => {
-      const d = await post('/api/state', { sessionId, playerSeat })
+      const d = await post('/api/state', { sessionId, playerSeat, playerToken })
       if (d.error) return
       setState(d)
       const joined = d.connectedPlayers || []
@@ -353,7 +362,7 @@ export function App(){
       if (missing.length === 0 && isHost) {
         add(t(lang, 'allPlayersJoined'))
         window.clearInterval(pollInterval)
-        const startResp = await post('/api/start-game', { sessionId, playerSeat })
+        const startResp = await post('/api/start-game', { sessionId, playerSeat, playerToken })
         if (startResp.error) add(startResp.error)
         else { setState(startResp.state); add(t(lang, 'gameStarted')) }
       }
@@ -363,14 +372,57 @@ export function App(){
 
   useEffect(() => {
     if (currentMode === 'single' || !sessionId || !state || state.phase !== 'play') return
-    if (state.currentTurn === playerSeat || state.waitingNextRound) return
+    let cancelled = false
+    const syncMultiplayerPlay = async () => {
+      if (state.waitingNextRound) {
+        if (isHost) {
+          const d = await post('/api/next-round', { sessionId, playerSeat, playerToken })
+          if (!cancelled && !d.error) setState(d.state)
+        } else {
+          const d = await post('/api/state', { sessionId, playerSeat, playerToken })
+          if (!cancelled && !d.error) setState(d)
+        }
+        return
+      }
+      const humanSeats: Seat[] = state.humanSeats || []
+      const isAiTurn = !!state.currentTurn && !humanSeats.includes(state.currentTurn)
+      if (currentMode === 'two' && isAiTurn) {
+        const d = await post('/api/advance-play', { sessionId, playerSeat, playerToken })
+        if (!cancelled && !d.error && d.state) setState(d.state)
+        return
+      }
+      const d = await post('/api/state', { sessionId, playerSeat, playerToken })
+      if (!cancelled && !d.error) setState(d)
+    }
+    const pollInterval = window.setInterval(syncMultiplayerPlay, 1000)
+    return () => { cancelled = true; window.clearInterval(pollInterval) }
+  }, [currentMode, sessionId, state?.phase, state?.currentTurn, state?.waitingNextRound, state?.humanSeats, playerSeat, playerToken, isHost])
+
+  useEffect(() => {
+    if (currentMode === 'single' || !sessionId || !state || state.phase !== 'chaodi') return
+    if ((state.chaoDiOptions || []).length > 0) return
+    const timer = window.setTimeout(async () => {
+      const d = await post('/api/run-chaodi', { sessionId, playerSeat, playerToken })
+      if (d?.error) {
+        const fresh = await post('/api/state', { sessionId, playerSeat, playerToken })
+        if (!fresh.error) setState(fresh)
+        return
+      }
+      if (d?.logs) d.logs.forEach((x: string) => add(`Chaodi: ${x}`))
+      if (d?.state) setState(d.state)
+    }, 500)
+    return () => window.clearTimeout(timer)
+  }, [currentMode, sessionId, state?.phase, state?.chaoDiOptions, playerSeat, playerToken])
+
+  useEffect(() => {
+    if (currentMode === 'single' || !sessionId || !state || state.phase !== 'chaodi') return
+    let cancelled = false
     const pollInterval = window.setInterval(async () => {
-      const d = await post('/api/state', { sessionId, playerSeat })
-      if (d.error) return
-      setState(d)
+      const d = await post('/api/state', { sessionId, playerSeat, playerToken })
+      if (!cancelled && !d.error) setState(d)
     }, 1000)
-    return () => window.clearInterval(pollInterval)
-  }, [currentMode, sessionId, state?.phase, state?.currentTurn, state?.waitingNextRound, playerSeat])
+    return () => { cancelled = true; window.clearInterval(pollInterval) }
+  }, [currentMode, sessionId, state?.phase, playerSeat, playerToken])
 
   useEffect(() => {
     if (currentMode !== 'single' || !sessionId || !state) return
@@ -383,7 +435,7 @@ export function App(){
 
       if (state.phase === 'chaodi') {
         if ((state.chaoDiOptions || []).length > 0) return
-        const d = await post('/api/run-chaodi', { sessionId, playerSeat })
+        const d = await post('/api/run-chaodi', { sessionId, playerSeat, playerToken })
         if (d?.error) {
           add(d.error)
           return
@@ -395,13 +447,13 @@ export function App(){
 
       if (state.phase === 'play') {
         if (state.waitingNextRound) {
-          const d = await post('/api/next-round', { sessionId, playerSeat })
+          const d = await post('/api/next-round', { sessionId, playerSeat, playerToken })
           if (d?.events) d.events.forEach((x: string) => add(`System: ${x}`))
           if (d?.state) setState(d.state)
           return
         }
         if (state.currentTurn === playerSeat) return
-        const d = await post('/api/advance-play', { sessionId, playerSeat })
+        const d = await post('/api/advance-play', { sessionId, playerSeat, playerToken })
         if (d?.events) d.events.forEach((x: string) => add(`System: ${x}`))
         if (d?.state) setState(d.state)
       }
@@ -420,6 +472,16 @@ export function App(){
   }, [state?.phase, state?.kittyHolder, state?.kittyCards, sessionId])
 
   useEffect(() => {
+    if (currentMode === 'single' || !sessionId || !state || state.phase !== 'kitty') return
+    if (state.kittyHolder === playerSeat && state.awaitingDiscard) return
+    const pollInterval = window.setInterval(async () => {
+      const d = await post('/api/state', { sessionId, playerSeat, playerToken })
+      if (!d.error) setState(d)
+    }, 1000)
+    return () => window.clearInterval(pollInterval)
+  }, [currentMode, sessionId, state?.phase, state?.kittyHolder, state?.awaitingDiscard, playerSeat, playerToken])
+
+  useEffect(() => {
     if (!state?.myHand) return
     const inHand = new Set((state.myHand || []).map((c: Card) => String(c.id)))
     setSelected(prev => {
@@ -433,6 +495,20 @@ export function App(){
   useEffect(() => {
     if (state?.phase === 'done') {
       setCountdown(5)
+      if (!isHost) {
+        const poll = setInterval(async () => {
+          const d = await post('/api/state', { sessionId, playerSeat, playerToken })
+          if (d.replacementSessionId) {
+            clearInterval(poll)
+            const next = await post('/api/state', { sessionId: d.replacementSessionId, playerSeat, playerToken })
+            if (!next.error) {
+              setSessionId(d.replacementSessionId)
+              setState(next)
+            }
+          }
+        }, 1000)
+        return () => clearInterval(poll)
+      }
       const interval = setInterval(() => {
         setCountdown(c => {
           if (c <= 1) { clearInterval(interval); nextGame(); return 0 }
@@ -441,7 +517,7 @@ export function App(){
       }, 1000)
       return () => clearInterval(interval)
     }
-  }, [state?.phase])
+  }, [state?.phase, isHost, sessionId, playerSeat, playerToken])
 
   const hand: Card[] = state?.myHand || []
   const sorted = useMemo(() => sortHand(hand, state?.level || level, state?.trump?.suit || null), [hand, state?.level, state?.trump?.suit, level])

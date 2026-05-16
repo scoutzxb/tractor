@@ -106,7 +106,7 @@ describe('regression: single-player generic routes', () => {
   test('single-player postDeal tick advances out of postDeal after timeout', async () => {
     const session = createBaseSession({
       phase: 'postDeal',
-      postDealStartTime: Date.now() - 6000,
+      postDealStartTime: Date.now() - 16000,
       deck: [],
     });
     const state = session.engine.getState();

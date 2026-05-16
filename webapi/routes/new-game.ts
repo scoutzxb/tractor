@@ -69,6 +69,7 @@ export async function handleNewGame(req: Request, deps: any) {
     logger: getLoggerManager("game-logs-web").startNewGame(sessionId),
     dealingCardsLog: [] as any[],
     players: new Map(),
+    hostSeat: undefined as Seat | undefined,
     createdAt: Date.now(),
   };
 

@@ -1,15 +1,20 @@
 import type { Seat } from "../../src/core/types";
 
 export async function handleStartGame(req: Request, deps: any) {
-  const { sessions, json, summarize, makeHumanProxy } = deps;
+  const { sessions, json, summarize, makeHumanProxy, requirePlayerAuth, requireHost } = deps;
 
   const body = await req.json();
-  const { sessionId, playerSeat } = body;
+  const { sessionId, playerSeat, playerToken } = body;
 
   const session = sessions.get(sessionId);
   if (!session) {
     return json({ error: "Game session not found" }, 404);
   }
+
+  const authError = requirePlayerAuth?.(session, playerSeat, playerToken);
+  if (authError) return json({ error: authError }, 403);
+  const hostError = requireHost?.(session, playerSeat);
+  if (hostError) return json({ error: hostError }, 403);
 
   if (session.phase !== "waiting") {
     return json({ error: "Game is not in waiting phase" }, 400);

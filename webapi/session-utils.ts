@@ -61,7 +61,10 @@ export function deserializeSession(serialized: any, deps: any): Session {
         connectedAt: new Date(p.connectedAt),
         lastSeen: new Date(p.lastSeen),
       }
-    ]))
+    ])),
+    hostSeat: serialized.hostSeat,
+    nextSessionId: serialized.nextSessionId,
+    createdAt: serialized.createdAt || Date.now(),
   };
 
   if (serialized.loggerState) {

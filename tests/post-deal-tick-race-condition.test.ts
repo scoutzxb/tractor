@@ -39,7 +39,7 @@ function createMockSession(overrides: Partial<Session> = {}): Session {
     round: 39,
     done: false,
     phase: "postDeal",
-    postDealStartTime: Date.now() - 6000, // 6 seconds ago (past timeout)
+    postDealStartTime: Date.now() - 16000, // 16 seconds ago (past timeout)
     awaitingDiscard: false,
     pendingChaodiSettle: false,
     mode: "normal",
@@ -159,7 +159,7 @@ describe("post-deal-tick race condition", () => {
     expect((result as any).ok).toBe(true);
     expect((result as any).phase).toBe("postDeal");
     expect((result as any).remainingMs).toBeGreaterThan(0);
-    expect((result as any).remainingMs).toBeLessThanOrEqual(3000);
+    expect((result as any).remainingMs).toBeLessThanOrEqual(13000);
   });
 
   it("should handle phase changes: postDeal → play", async () => {
@@ -232,7 +232,7 @@ describe("post-deal-tick race condition", () => {
       playerMode: "single",
       isMultiplayer: false,
       phase: "postDeal",
-      postDealStartTime: Date.now() - 6000,
+      postDealStartTime: Date.now() - 16000,
     });
     const state = session.engine.getState();
     const deck = session.deck;

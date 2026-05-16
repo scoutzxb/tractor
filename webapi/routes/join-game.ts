@@ -44,6 +44,7 @@ export async function handleJoinGame(req: Request, deps: any) {
   }
 
   const token = generateToken();
+  if (!session.hostSeat) session.hostSeat = desiredSeat;
   session.players.set(desiredSeat, {
     token,
     name: playerName,
@@ -60,6 +61,7 @@ export async function handleJoinGame(req: Request, deps: any) {
     sessionId,
     gamePhase: session.phase,
     playerMode: session.playerMode,
+    hostSeat: session.hostSeat,
     connectedPlayers: [...session.players.keys()],
     waitingFor: validSeats.filter(s => !session.players.has(s)),
     state: summarize(session, desiredSeat)

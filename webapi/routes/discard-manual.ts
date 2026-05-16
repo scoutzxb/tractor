@@ -10,9 +10,11 @@ import { autoSaveForSeat, autoSaveForAllPlayers } from "../autosave";
 
 export async function handleDiscardManual(req: Request, deps: any) {
   const { sessions, json, summarize } = deps;
-  const { sessionId, cardIds, playerSeat } = await req.json();
+  const { sessionId, cardIds, playerSeat, playerToken } = await req.json();
   const s = sessions.get(sessionId);
   if (!s) return json({ error: "session not found" }, 404);
+  const authError = deps.requirePlayerAuth?.(s, playerSeat, playerToken);
+  if (authError) return json({ error: authError }, 403);
   if (s.phase !== "kitty") return json({ error: "not in kitty phase" }, 400);
 
   // Validate this is the kitty holder

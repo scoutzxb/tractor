@@ -7,6 +7,6 @@ describe('regression: single-player keeps fast auto-advance', () => {
     expect(source).toContain("const timer = window.setTimeout(runSinglePlayerAutopilot, 250)");
     expect(source).toContain("if (currentMode !== 'single' || !sessionId || !state) return");
     expect(source).toContain("if (state.phase === 'play') {");
-    expect(source).toContain("const d = await post('/api/advance-play', { sessionId, playerSeat })");
+    expect(source).toContain("const d = await post('/api/advance-play', { sessionId, playerSeat, playerToken })");
   });
 });
